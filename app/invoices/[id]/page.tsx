@@ -44,13 +44,21 @@ export default function InvoiceDetailPage() {
   useEffect(() => {
     if (!id) return
     supabase.from('invoices')
-      .select('*, client:clients(*), quote:quotes(quote_number), project:projects(id,name,status)')
+      .select('*, client:clients(*), quote:quotes(quote_number)')
       .eq('id', id).single()
-      .then(({ data }) => {
+      .then(async ({ data }) => {
         if (data) {
           setInvoice(data)
           setClient(data.client)
-          setProject(data.project)
+          // Load project separately to avoid circular FK join issues
+          if (data.project_id) {
+            const { data: proj } = await supabase
+              .from('projects')
+              .select('id, name, status')
+              .eq('id', data.project_id)
+              .maybeSingle()
+            if (proj) setProject(proj)
+          }
         }
         setLoading(false)
       })
