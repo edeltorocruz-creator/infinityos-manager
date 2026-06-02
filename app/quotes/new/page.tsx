@@ -1,8 +1,8 @@
 'use client'
 export const dynamic = 'force-dynamic'
 
-import { useEffect, useState, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useState, useRef, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import {
   calcVehicleSqFt, calcVehicleSubtotal, calcFlatSurface, calcTotals,
@@ -19,8 +19,10 @@ import { Plus, Trash2, Save, ArrowLeft, AlertCircle, CheckCircle, Calculator, Us
 const ic = "w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-orange-400"
 const lb = "text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block"
 
-export default function NewQuotePage() {
+function NewQuoteInner() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const urlClientId = searchParams.get('clientId')
   const [clients, setClients] = useState<any[]>([])
   const [leads, setLeads] = useState<any[]>([])
   const [rules, setRules] = useState<PricingRule[]>([])
@@ -62,6 +64,7 @@ export default function NewQuotePage() {
       if (clientRes.data) setClients(clientRes.data)
       if (leadRes.data) setLeads(leadRes.data)
       setRules(pricingRules as PricingRule[])
+      if (urlClientId) setClientId(urlClientId)
       if (pricingRules.length > 0) setSelectedRule(pricingRules[0] as PricingRule)
       setLoading(false)
     })
@@ -609,5 +612,14 @@ export default function NewQuotePage() {
         </div>
       </div>
     </div>
+  )
+}
+
+
+export default function NewQuotePage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-screen text-gray-400">Loading...</div>}>
+      <NewQuoteInner />
+    </Suspense>
   )
 }
