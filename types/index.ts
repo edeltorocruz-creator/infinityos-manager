@@ -27,6 +27,7 @@ export interface Quote {
   sent_at?: string | null
   expires_at?: string | null
   accepted_at?: string | null
+  project_id?: string | null
   created_at?: string
   updated_at?: string
   client?: Client
