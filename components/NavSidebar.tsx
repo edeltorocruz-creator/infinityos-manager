@@ -5,10 +5,11 @@ import { usePathname } from 'next/navigation'
 
 const NAV_ITEMS = [
   { href: '/dashboard',     label: 'Dashboard' },
-  { href: '/quotes',        label: 'Quotes',   badge: 'New' },
+  { href: '/followup',      label: '🔥 Follow-up',  badge: 'HOT' },
+  { href: '/leads',         label: 'Leads' },
+  { href: '/quotes',        label: 'Quotes' },
   { href: '/invoices',      label: 'Invoices' },
   { href: '/clients',       label: 'Clients' },
-  { href: '/leads',         label: 'Leads' },
   { href: '/projects',      label: 'Projects' },
   { href: '/expenses',      label: 'Expenses' },
   { href: '/reports',       label: 'Reports' },
@@ -36,7 +37,7 @@ export default function NavSidebar() {
               }`}>
               <span>{item.label}</span>
               {item.badge && !isActive && (
-                <span className="bg-orange-500 text-white text-xs px-1.5 py-0.5 rounded-full font-bold">
+                <span className="bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full font-bold animate-pulse">
                   {item.badge}
                 </span>
               )}
