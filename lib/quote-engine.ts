@@ -136,3 +136,35 @@ DESIGN: Design approval required before printing. Revisions after approval may i
 CANCELLATION: Deposits are non-refundable once materials have been ordered or design work has begun.
 VEHICLE CONDITION: Customer is responsible for ensuring vehicle is clean and in good condition prior to wrap installation.
 CHANGES: Any scope changes must be approved in writing and may affect pricing and timeline.`
+
+export const SERVICE_LABELS: Record<string, string> = {
+  truck: 'Truck Full Wrap',
+  trailer: 'Trailer Full Wrap',
+  food_truck: 'Food Truck Wrap',
+  van: 'Van / Sprinter Wrap',
+  car: 'Car Full Wrap',
+  suv: 'SUV Full Wrap',
+  pickup: 'Pickup Full Wrap',
+  partial_wrap: 'Partial Wrap',
+  lettering: 'Lettering & Decals',
+  window_graphics: 'Window Graphics',
+  perforated_vinyl: 'Perforated Window Vinyl',
+  wall_mural: 'Wall Mural',
+  storefront: 'Storefront Graphics',
+  signs_banners: 'Signs & Banners',
+  design_fee: 'Design Fee',
+  installation: 'Installation Fee',
+  removal: 'Removal Fee',
+  rush_fee: 'Rush Fee',
+}
+
+export const VEHICLE_LABELS: Record<string, string> = {
+  truck: 'Truck',
+  trailer: 'Trailer',
+  food_truck: 'Food Truck',
+  van: 'Van / Sprinter',
+  car: 'Car / Sedan',
+  suv: 'SUV',
+  pickup: 'Pickup',
+  any: 'Any Surface',
+}
