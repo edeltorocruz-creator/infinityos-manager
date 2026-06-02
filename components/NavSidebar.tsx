@@ -6,12 +6,13 @@ import { usePathname } from 'next/navigation'
 const NAV_ITEMS = [
   { href: '/dashboard',     label: 'Dashboard' },
   { href: '/followup',      label: '🔥 Follow-up',  badge: 'HOT' },
+  { href: '/prospects',     label: '🎯 Prospects',  badge: 'NEW' },
   { href: '/leads',         label: 'Leads' },
   { href: '/quotes',        label: 'Quotes' },
   { href: '/invoices',      label: 'Invoices' },
-  { href: '/clients',       label: 'Clients' },
   { href: '/projects',      label: 'Projects' },
   { href: '/expenses',      label: 'Expenses' },
+  { href: '/clients',       label: 'Clients' },
   { href: '/reports',       label: 'Reports' },
   { href: '/admin/pricing', label: 'Pricing Admin' },
 ]
@@ -37,7 +38,7 @@ export default function NavSidebar() {
               }`}>
               <span>{item.label}</span>
               {item.badge && !isActive && (
-                <span className="bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full font-bold animate-pulse">
+                <span className={`text-white text-xs px-1.5 py-0.5 rounded-full font-bold ${item.badge === 'HOT' ? 'bg-red-500 animate-pulse' : 'bg-orange-500'}`}>
                   {item.badge}
                 </span>
               )}
