@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { href: '/projects',   label: 'Projects' },
   { href: '/expenses',   label: 'Expenses' },
   { href: '/reports',    label: 'Reports' },
+  { href: '/admin/pricing', label: 'Pricing Admin' },
 ]
 
 export default function NavSidebar() {
