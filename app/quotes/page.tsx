@@ -140,7 +140,7 @@ export default function QuotesPage() {
                       <p className="text-gray-700 font-medium">{quote.client?.name || 'Unknown Client'}</p>
                       {quote.client?.company && <p className="text-gray-400 text-sm">{quote.client.company}</p>}
                       <p className="text-gray-400 text-sm mt-1">
-                        {new Date(quote.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                        {new Date(quote.created_at || '').toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
                         {' · '}{quote.items?.length || 0} item(s)
                       </p>
                     </div>
@@ -152,7 +152,7 @@ export default function QuotesPage() {
                           className="text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg transition-colors">
                           View / PDF
                         </Link>
-                        {quote.status === 'approved' && !quote.project_id && (
+                        {quote.status === 'approved' && !(quote as any).project_id && (
                           <button onClick={() => convertToProject(quote)}
                             className="text-sm bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded-lg transition-colors">
                             → Project
