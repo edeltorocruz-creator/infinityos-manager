@@ -33,7 +33,7 @@ export const QuotePDF = React.forwardRef<HTMLDivElement, QuotePDFProps>(
               <p className="text-2xl font-bold">{quote.quote_number}</p>
             </div>
             <p className="text-gray-500 text-sm mt-2">
-              Date: {new Date(quote.created_at).toLocaleDateString('en-US')}
+              Date: {new Date(quote.created_at || Date.now()).toLocaleDateString('en-US')}
             </p>
             <p className="text-gray-500 text-sm">
               Valid until: {expiresDate.toLocaleDateString('en-US')}
@@ -71,7 +71,7 @@ export const QuotePDF = React.forwardRef<HTMLDivElement, QuotePDFProps>(
                   </p>
                   <p className="text-gray-500 text-sm">{item.description}</p>
                   {item.sq_ft && <p className="text-gray-400 text-xs">{item.sq_ft} sq ft × ${item.sq_ft > 0 ? (item.unit_price / item.sq_ft).toFixed(2) : 0}/sq ft</p>}
-                  {item.discount_pct > 0 && (
+                  {(item.discount_pct || 0) > 0 && (
                     <span className="inline-block bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded mt-1">
                       Fleet discount: {item.discount_pct}% off
                     </span>
