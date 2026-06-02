@@ -5,12 +5,12 @@ import { useEffect, useState, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { formatCurrency, formatDate, WARRANTY_TEXT, TERMS_TEXT } from '@/lib/quote-engine'
-import { ArrowLeft, Printer, CheckCircle, XCircle, Clock } from 'lucide-react'
+import { ArrowLeft, Printer, CheckCircle, XCircle, Clock, FileText, Zap } from 'lucide-react'
 import { useReactToPrint } from 'react-to-print'
 
 const STATUS_COLORS: Record<string, string> = {
-  draft: 'bg-gray-100 text-gray-600',
-  sent: 'bg-blue-100 text-blue-700',
+  draft:    'bg-gray-100 text-gray-600',
+  sent:     'bg-blue-100 text-blue-700',
   approved: 'bg-green-100 text-green-700',
   rejected: 'bg-red-100 text-red-600',
 }
@@ -23,23 +23,75 @@ export default function QuoteDetailPage() {
   const [client, setClient] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(false)
+  const [creatingInvoice, setCreatingInvoice] = useState(false)
+  const [invoiceId, setInvoiceId] = useState<string | null>(null)
 
   const handlePrint = useReactToPrint({ contentRef: printRef })
 
   useEffect(() => {
     if (!id) return
-    supabase.from('quotes').select('*, client:clients(*)').eq('id', id).single()
+    supabase.from('quotes').select('*, client:clients(*)')
+      .eq('id', id).single()
       .then(({ data }) => {
         if (data) { setQuote(data); setClient(data.client) }
         setLoading(false)
       })
+    // Check if invoice already exists for this quote
+    supabase.from('invoices').select('id').eq('quote_id', id).maybeSingle()
+      .then(({ data }) => { if (data) setInvoiceId(data.id) })
   }, [id])
 
   async function updateStatus(status: string) {
     setUpdating(true)
-    await supabase.from('quotes').update({ status, accepted_at: status === 'approved' ? new Date().toISOString() : null }).eq('id', id)
+    await supabase.from('quotes').update({
+      status,
+      accepted_at: status === 'approved' ? new Date().toISOString() : null,
+      updated_at: new Date().toISOString()
+    }).eq('id', id)
     setQuote((q: any) => ({ ...q, status }))
     setUpdating(false)
+  }
+
+  async function createInvoice() {
+    if (!quote) return
+    setCreatingInvoice(true)
+
+    // Generate invoice number: INV-YYMM-XXXX
+    const d = new Date()
+    const yy = d.getFullYear().toString().slice(-2)
+    const mm = String(d.getMonth() + 1).padStart(2, '0')
+    const rand = Math.floor(Math.random() * 9000) + 1000
+    const invoiceNumber = `INV-${yy}${mm}-${rand}`
+
+    const deposit = Math.round(quote.total * 0.5 * 100) / 100
+    const balance = Math.round((quote.total - deposit) * 100) / 100
+
+    // Due date: 30 days from now
+    const due = new Date()
+    due.setDate(due.getDate() + 30)
+
+    const { data, error } = await supabase.from('invoices').insert({
+      invoice_number: invoiceNumber,
+      quote_id: quote.id,
+      client_id: quote.client_id,
+      items: quote.items,
+      subtotal: quote.subtotal,
+      tax_rate: quote.tax_rate,
+      tax_amount: quote.tax_amount,
+      total: quote.total,
+      deposit_amount: deposit,
+      balance_due: balance,
+      status: 'unpaid',
+      due_date: due.toISOString().split('T')[0],
+      notes: quote.notes,
+    }).select().single()
+
+    setCreatingInvoice(false)
+    if (error) { alert('Error: ' + error.message); return }
+    if (data) {
+      setInvoiceId(data.id)
+      router.push(`/invoices/${data.id}`)
+    }
   }
 
   if (loading) return <div className="flex items-center justify-center h-screen text-gray-400">Loading quote...</div>
@@ -51,19 +103,25 @@ export default function QuoteDetailPage() {
   const total = quote.total || 0
   const deposit = Math.round(total * 0.5 * 100) / 100
   const balance = Math.round((total - deposit) * 100) / 100
-  const expires = quote.expires_at ? new Date(quote.expires_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '—'
+  const expires = quote.expires_at
+    ? new Date(quote.expires_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+    : '—'
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-4xl mx-auto">
 
-        {/* Controls (not printed) */}
+        {/* Controls */}
         <div className="flex items-center justify-between mb-6 print:hidden">
           <div className="flex items-center gap-3">
-            <button onClick={() => router.push('/quotes')} className="p-2 hover:bg-gray-100 rounded-lg"><ArrowLeft size={20}/></button>
+            <button onClick={() => router.push('/quotes')} className="p-2 hover:bg-gray-100 rounded-lg">
+              <ArrowLeft size={20}/>
+            </button>
             <div>
               <h1 className="text-xl font-bold text-gray-900">{quote.quote_number}</h1>
-              <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${STATUS_COLORS[quote.status]}`}>{quote.status.toUpperCase()}</span>
+              <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${STATUS_COLORS[quote.status]}`}>
+                {quote.status.toUpperCase()}
+              </span>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -85,6 +143,20 @@ export default function QuoteDetailPage() {
                 <Clock size={15}/>Mark Sent
               </button>
             )}
+
+            {/* INVOICE BUTTON — the key new action */}
+            {invoiceId ? (
+              <button onClick={() => router.push(`/invoices/${invoiceId}`)}
+                className="flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
+                <FileText size={15}/>View Invoice
+              </button>
+            ) : (
+              <button onClick={createInvoice} disabled={creatingInvoice}
+                className="flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
+                <Zap size={15}/>{creatingInvoice ? 'Creating...' : 'Create Invoice'}
+              </button>
+            )}
+
             <button onClick={handlePrint}
               className="flex items-center gap-1.5 bg-gray-900 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
               <Printer size={15}/>Print / PDF
@@ -145,8 +217,8 @@ export default function QuoteDetailPage() {
               <thead>
                 <tr className="border-b-2 border-gray-900">
                   <th className="text-left py-3 text-xs font-bold text-gray-600 uppercase tracking-wide">Description</th>
-                  <th className="text-center py-3 text-xs font-bold text-gray-600 uppercase tracking-wide w-16">L (ft)</th>
                   <th className="text-center py-3 text-xs font-bold text-gray-600 uppercase tracking-wide w-20">Sq Ft</th>
+                  <th className="text-center py-3 text-xs font-bold text-gray-600 uppercase tracking-wide w-20">Material</th>
                   <th className="text-right py-3 text-xs font-bold text-gray-600 uppercase tracking-wide w-28">Amount</th>
                 </tr>
               </thead>
@@ -160,12 +232,14 @@ export default function QuoteDetailPage() {
                       )}
                       {item.notes && <p className="text-gray-400 text-xs italic mt-0.5">{item.notes}</p>}
                       <div className="flex flex-wrap gap-3 mt-1 text-xs text-gray-400">
+                        {item.L && <span>L: {item.L} ft</span>}
+                        {item.W && item.H && <span>{item.W}ft × {item.H}ft</span>}
                         {item.price_per_sqft > 0 && <span>${item.price_per_sqft}/sqft</span>}
-                        {item.extra_rate && <span>+${item.extra_rate}/sqft</span>}
+                        {item.complexity && item.complexity !== 'simple' && <span className="capitalize">{item.complexity}</span>}
                       </div>
                     </td>
-                    <td className="py-4 text-center text-sm text-gray-600">{item.L || '—'}</td>
                     <td className="py-4 text-center text-sm text-gray-600">{item.sqft > 0 ? item.sqft : '—'}</td>
+                    <td className="py-4 text-center text-xs text-gray-500 uppercase">{item.material || '—'}</td>
                     <td className="py-4 text-right font-bold text-gray-900">{formatCurrency(item.subtotal)}</td>
                   </tr>
                 ))}
@@ -203,7 +277,6 @@ export default function QuoteDetailPage() {
             </div>
           </div>
 
-          {/* NOTES */}
           {quote.notes && (
             <div className="px-8 pb-5">
               <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
@@ -213,7 +286,6 @@ export default function QuoteDetailPage() {
             </div>
           )}
 
-          {/* WARRANTY */}
           <div className="px-8 pb-5">
             <div className="bg-green-50 border border-green-100 rounded-xl p-4">
               <p className="text-xs font-bold text-green-700 uppercase tracking-wide mb-1">✓ Warranty</p>
@@ -221,53 +293,29 @@ export default function QuoteDetailPage() {
             </div>
           </div>
 
-          {/* TERMS */}
           <div className="px-8 pb-5">
             <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Terms & Conditions</p>
             <div className="text-xs text-gray-500 whitespace-pre-line leading-relaxed">{TERMS_TEXT}</div>
           </div>
 
-          {/* SIGNATURE */}
           <div className="px-8 pb-8">
             <div className="border-2 border-dashed border-gray-200 rounded-xl p-6">
               <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-4">Client Acceptance</p>
               <p className="text-xs text-gray-400 mb-6">By signing below, I agree to the terms of this quote and authorize Infinity Wrap Design to proceed with the work described above.</p>
               <div className="grid grid-cols-2 gap-8">
-                <div>
-                  <div className="border-b border-gray-300 h-10 mb-1"></div>
-                  <p className="text-xs text-gray-400">Client Signature</p>
-                </div>
-                <div>
-                  <div className="border-b border-gray-300 h-10 mb-1"></div>
-                  <p className="text-xs text-gray-400">Date</p>
-                </div>
-                <div>
-                  <div className="border-b border-gray-300 h-10 mb-1"></div>
-                  <p className="text-xs text-gray-400">Printed Name</p>
-                </div>
-                <div>
-                  <div className="border-b border-gray-300 h-10 mb-1"></div>
-                  <p className="text-xs text-gray-400">Deposit Amount Paid</p>
-                </div>
+                <div><div className="border-b border-gray-300 h-10 mb-1"/><p className="text-xs text-gray-400">Client Signature</p></div>
+                <div><div className="border-b border-gray-300 h-10 mb-1"/><p className="text-xs text-gray-400">Date</p></div>
+                <div><div className="border-b border-gray-300 h-10 mb-1"/><p className="text-xs text-gray-400">Printed Name</p></div>
+                <div><div className="border-b border-gray-300 h-10 mb-1"/><p className="text-xs text-gray-400">Deposit Amount Paid</p></div>
               </div>
             </div>
           </div>
 
-          {/* FOOTER */}
           <div className="bg-gray-900 px-8 py-4 text-center">
             <p className="text-gray-400 text-xs">Thank you for your business! · Infinity Wrap Design · (919) 649-0755 · infinitywrapdesign@gmail.com</p>
           </div>
         </div>
       </div>
-
-      <style jsx global>{`
-        @media print {
-          body * { visibility: hidden; }
-          #printable, #printable * { visibility: visible; }
-          #printable { position: absolute; left: 0; top: 0; width: 100%; }
-          .print\\:hidden { display: none !important; }
-        }
-      `}</style>
     </div>
   )
 }
