@@ -24,7 +24,7 @@ export default function QuoteDetailPage() {
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(false)
 
-  const handlePrint = useReactToPrint({ content: () => printRef.current })
+  const handlePrint = useReactToPrint({ contentRef: printRef })
 
   useEffect(() => {
     if (!id) return
