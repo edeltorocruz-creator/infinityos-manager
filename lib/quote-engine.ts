@@ -1,15 +1,13 @@
 import { supabase } from './supabase'
 
 export const TAX_RATE = 0.0675  // NC 6.75%
-export const DEPOSIT_RATE = 0.50  // 50% deposit
+export const DEPOSIT_RATE = 0.50
 export const VALID_DAYS = 30
 export const WARRANTY_DAYS = 365
 
 // ============================================================
-// FORMULA: L-based vehicle wrap (your real formula)
+// FORMULA: L-based vehicle wrap
 // SqFt = (L * side) * 2 + (top * top) * 2
-// base  = SqFt * price_per_sqft
-// sub   = base + (SqFt * extra_rate)
 // ============================================================
 export function calcVehicleSqFt(
   L: number,
@@ -29,11 +27,40 @@ export function calcVehicleSubtotal(
 }
 
 // ============================================================
-// FORMULA: Flat surface (wall mural, window, etc.)
-// subtotal = sqft * price_per_sqft
+// FORMULA: Flat surface (W x H -> sqft)
 // ============================================================
 export function calcFlatSurface(sqft: number, price_per_sqft: number): number {
   return Math.round(sqft * price_per_sqft * 100) / 100
+}
+
+// Complexity multipliers
+export const COMPLEXITY_MULTIPLIERS: Record<string, number> = {
+  simple:  1.0,
+  medium:  1.20,
+  complex: 1.45,
+}
+
+export const COMPLEXITY_LABELS: Record<string, string> = {
+  simple:  'Simple — flat surfaces, no obstacles',
+  medium:  'Medium — curves, mild obstructions',
+  complex: 'Complex — rivets, recesses, heavy cuts',
+}
+
+// Material multipliers (applied on top of base price)
+export const MATERIAL_MULTIPLIERS: Record<string, number> = {
+  economy: 0.85,
+  gf:      1.0,
+  avery:   1.10,
+  '3m':    1.20,
+  premium: 1.35,
+}
+
+export const MATERIAL_LABELS: Record<string, string> = {
+  economy: 'Economy vinyl',
+  gf:      'General Formulations',
+  avery:   'Avery Dennison',
+  '3m':    '3M Series',
+  premium: 'Premium / Specialty',
 }
 
 // ============================================================
@@ -49,7 +76,7 @@ export function calcTotals(items: QuoteLineItem[]) {
 }
 
 // ============================================================
-// LOAD PRICING RULE FROM DB
+// LOAD PRICING RULES FROM DB
 // ============================================================
 export async function loadPricingRule(service_type: string) {
   const { data } = await supabase
@@ -74,16 +101,30 @@ export async function loadAllPricingRules() {
 // ============================================================
 // TYPES
 // ============================================================
+export type ComplexityLevel = 'simple' | 'medium' | 'complex'
+export type MaterialType = 'economy' | 'gf' | 'avery' | '3m' | 'premium'
+export type InputMode = 'L' | 'WH' | 'sqft' | 'fee'
+
 export interface QuoteLineItem {
   id: string
   service_type: string
   label: string
   description: string
-  L?: number          // vehicle length (for L-based)
+  // dimensions
+  L?: number
+  W?: number
+  H?: number
   sqft: number
+  // pricing breakdown
   price_per_sqft: number
   extra_rate?: number
-  subtotal: number
+  material: MaterialType
+  complexity: ComplexityLevel
+  material_multiplier: number
+  complexity_multiplier: number
+  base_price: number        // before multipliers
+  subtotal: number          // final
+  // meta
   material_rate?: number
   labor_rate?: number
   notes?: string
@@ -126,16 +167,22 @@ export function formatDate(d?: Date): string {
   return (d || new Date()).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
 }
 
+// Determine input mode based on service type
+export function getInputMode(serviceType: string): InputMode {
+  if (VEHICLE_SERVICES.includes(serviceType)) return 'L'
+  if (WH_SERVICES.includes(serviceType)) return 'WH'
+  if (FEE_SERVICES.includes(serviceType)) return 'fee'
+  return 'sqft'
+}
+
 export const VEHICLE_SERVICES = ['truck','trailer','food_truck','van','car','suv','pickup']
 export const FLAT_SERVICES = ['partial_wrap','lettering','window_graphics','perforated_vinyl','wall_mural','storefront','signs_banners']
+// Services that use Width x Height input
+export const WH_SERVICES = ['wall_mural','window_graphics','perforated_vinyl','signs_banners','lettering','storefront']
 export const FEE_SERVICES = ['design_fee','installation','removal','rush_fee']
 
 export const WARRANTY_TEXT = '1-year workmanship warranty on installation. Material manufacturer warranty applies (3M: 7 years, Avery: 5 years, GF: 5 years).'
-export const TERMS_TEXT = `PAYMENT TERMS: 50% deposit required to schedule. Remaining 50% due upon completion before delivery.
-DESIGN: Design approval required before printing. Revisions after approval may incur additional fees.
-CANCELLATION: Deposits are non-refundable once materials have been ordered or design work has begun.
-VEHICLE CONDITION: Customer is responsible for ensuring vehicle is clean and in good condition prior to wrap installation.
-CHANGES: Any scope changes must be approved in writing and may affect pricing and timeline.`
+export const TERMS_TEXT = `PAYMENT TERMS: 50% deposit required to schedule. Remaining 50% due upon completion before delivery.\nDESIGN: Design approval required before printing. Revisions after approval may incur additional fees.\nCANCELLATION: Deposits are non-refundable once materials have been ordered or design work has begun.\nVEHICLE CONDITION: Customer is responsible for ensuring vehicle is clean and in good condition prior to wrap installation.\nCHANGES: Any scope changes must be approved in writing and may affect pricing and timeline.`
 
 export const SERVICE_LABELS: Record<string, string> = {
   truck: 'Truck Full Wrap',
