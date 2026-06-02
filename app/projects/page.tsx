@@ -1,201 +1,212 @@
 'use client'
-
 export const dynamic = 'force-dynamic'
 
-
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/quote-engine'
-import { Plus, Search, Folder, Calendar, DollarSign, Edit2, Trash2, CheckCircle } from 'lucide-react'
+import { FolderOpen, Plus, Search, FileText, Receipt, ChevronRight, Zap } from 'lucide-react'
 
 type ProjectStatus = 'quoted' | 'deposit_paid' | 'in_production' | 'installation' | 'completed' | 'invoiced'
 
 const STATUS_CONFIG: Record<ProjectStatus, { label: string; color: string; bg: string; step: number }> = {
-  quoted:       { label: 'Quoted',       color: 'text-blue-700',   bg: 'bg-blue-100',   step: 1 },
-  deposit_paid: { label: 'Deposit Paid', color: 'text-purple-700', bg: 'bg-purple-100', step: 2 },
-  in_production:{ label: 'In Production',color: 'text-yellow-700', bg: 'bg-yellow-100', step: 3 },
-  installation: { label: 'Installation', color: 'text-orange-700', bg: 'bg-orange-100', step: 4 },
-  completed:    { label: 'Completed',    color: 'text-green-700',  bg: 'bg-green-100',  step: 5 },
-  invoiced:     { label: 'Invoiced',     color: 'text-gray-700',   bg: 'bg-gray-100',   step: 6 },
+  quoted:        { label: 'Quoted',              color: 'text-gray-600',    bg: 'bg-gray-100',    step: 1 },
+  deposit_paid:  { label: '🔧 Ready for Prod',  color: 'text-blue-700',   bg: 'bg-blue-100',   step: 2 },
+  in_production: { label: 'In Production',       color: 'text-purple-700', bg: 'bg-purple-100', step: 3 },
+  installation:  { label: 'Installation',        color: 'text-orange-700', bg: 'bg-orange-100', step: 4 },
+  completed:     { label: '✓ Completed',         color: 'text-green-700',  bg: 'bg-green-100',  step: 5 },
+  invoiced:      { label: 'Invoiced',            color: 'text-teal-700',   bg: 'bg-teal-100',   step: 6 },
 }
 
-const STAGES: ProjectStatus[] = ['quoted','deposit_paid','in_production','installation','completed','invoiced']
+const PIPELINE_STEPS: ProjectStatus[] = ['quoted','deposit_paid','in_production','installation','completed','invoiced']
 
 interface Project {
   id: string
   name: string
   client_id: string | null
+  quote_id: string | null
+  invoice_id: string | null
   status: ProjectStatus
   total_amount: number | null
+  service_description: string | null
   notes: string | null
   start_date: string | null
   end_date: string | null
+  deposit_paid_at: string | null
+  final_paid_at: string | null
   created_at: string
-  client?: { name: string }
+  client?: { name: string; company: string | null }
+  quote?: { quote_number: string } | null
+  invoice?: { invoice_number: string; status: string } | null
 }
 
 export default function ProjectsPage() {
+  const router = useRouter()
   const [projects, setProjects] = useState<Project[]>([])
-  const [clients, setClients] = useState<{ id: string; name: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState<string>('all')
-  const [showForm, setShowForm] = useState(false)
-  const [editing, setEditing] = useState<Project | null>(null)
-  const [form, setForm] = useState({ name: '', client_id: '', status: 'quoted' as ProjectStatus, total_amount: '', notes: '', start_date: '', end_date: '' })
-  const [saving, setSaving] = useState(false)
 
-  useEffect(() => { loadAll() }, [])
+  useEffect(() => { loadProjects() }, [])
 
-  async function loadAll() {
+  async function loadProjects() {
     setLoading(true)
-    const [projRes, clientRes] = await Promise.all([
-      supabase.from('projects').select('*, client:clients(name)').order('created_at', { ascending: false }),
-      supabase.from('clients').select('id, name').order('name'),
-    ])
-    if (projRes.data) setProjects(projRes.data as Project[])
-    if (clientRes.data) setClients(clientRes.data)
+    const { data } = await supabase
+      .from('projects')
+      .select('*, client:clients(name,company), quote:quotes(quote_number), invoice:invoices(invoice_number,status)')
+      .order('created_at', { ascending: false })
+    if (data) setProjects(data as Project[])
     setLoading(false)
   }
 
-  async function saveProject() {
-    if (!form.name.trim()) return
-    setSaving(true)
-    const payload: any = {
-      name: form.name,
-      client_id: form.client_id || null,
-      status: form.status,
-      total_amount: form.total_amount ? parseFloat(form.total_amount) : null,
-      notes: form.notes || null,
-      start_date: form.start_date || null,
-      end_date: form.end_date || null,
-    }
-    if (editing) {
-      await supabase.from('projects').update(payload).eq('id', editing.id)
-    } else {
-      await supabase.from('projects').insert(payload)
-    }
-    setSaving(false)
-    setShowForm(false)
-    loadAll()
-  }
-
   async function updateStatus(id: string, status: ProjectStatus) {
-    await supabase.from('projects').update({ status }).eq('id', id)
-    setProjects(projects.map(p => p.id === id ? { ...p, status } : p))
+    await supabase.from('projects').update({ status, updated_at: new Date().toISOString() }).eq('id', id)
+    setProjects(p => p.map(proj => proj.id === id ? { ...proj, status } : proj))
   }
 
-  async function deleteProject(id: string) {
-    if (!confirm('Delete this project?')) return
-    await supabase.from('projects').delete().eq('id', id)
-    loadAll()
-  }
-
-  const filtered = projects.filter(p => {
-    const matchSearch = p.name.toLowerCase().includes(search.toLowerCase()) || (p.client?.name || '').toLowerCase().includes(search.toLowerCase())
+  const filtered = useMemo(() => projects.filter(p => {
+    const matchSearch = p.name.toLowerCase().includes(search.toLowerCase()) ||
+      (p.client?.name || '').toLowerCase().includes(search.toLowerCase())
     const matchStatus = filterStatus === 'all' || p.status === filterStatus
     return matchSearch && matchStatus
-  })
+  }), [projects, search, filterStatus])
 
-  const stats = {
+  const stats = useMemo(() => ({
     total: projects.length,
     active: projects.filter(p => !['completed','invoiced'].includes(p.status)).length,
-    completed: projects.filter(p => p.status === 'completed' || p.status === 'invoiced').length,
-    value: projects.filter(p => !['invoiced'].includes(p.status)).reduce((s, p) => s + (p.total_amount || 0), 0),
-  }
+    readyForProd: projects.filter(p => p.status === 'deposit_paid').length,
+    completed: projects.filter(p => p.status === 'completed').length,
+    totalValue: projects.reduce((s, p) => s + (p.total_amount || 0), 0),
+  }), [projects])
+
+  if (loading) return <div className="flex items-center justify-center h-screen text-gray-400">Loading projects...</div>
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex justify-between items-center mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Projects</h1>
-            <p className="text-gray-500 mt-1">Active & completed jobs</p>
+            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
+              <FolderOpen size={26} className="text-orange-500"/> Projects
+            </h1>
+            <p className="text-gray-500 mt-1">Production pipeline — Infinity Wrap Design</p>
           </div>
-          <button onClick={() => { setEditing(null); setForm({ name: '', client_id: '', status: 'quoted', total_amount: '', notes: '', start_date: '', end_date: '' }); setShowForm(true) }}
-            className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-5 py-3 rounded-lg font-semibold transition-colors">
-            <Plus size={20} /> New Project
-          </button>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        {/* Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
           {[
-            { label: 'Total', value: stats.total, color: 'text-gray-900' },
-            { label: 'Active', value: stats.active, color: 'text-orange-500' },
-            { label: 'Completed', value: stats.completed, color: 'text-green-600' },
-            { label: 'Open Value', value: formatCurrency(stats.value), color: 'text-orange-500' },
+            { label: 'Total',          value: stats.total,                      color: 'text-gray-900' },
+            { label: 'Active',         value: stats.active,                     color: 'text-blue-600' },
+            { label: 'Ready for Prod', value: stats.readyForProd,               color: 'text-purple-600' },
+            { label: 'Completed',      value: stats.completed,                  color: 'text-green-600' },
+            { label: 'Total Value',    value: formatCurrency(stats.totalValue), color: 'text-orange-500' },
           ].map(s => (
-            <div key={s.label} className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-              <p className="text-gray-500 text-sm mb-1">{s.label}</p>
-              <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
+            <div key={s.label} className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+              <p className="text-gray-400 text-xs mb-1">{s.label}</p>
+              <p className={`text-xl font-bold ${s.color}`}>{s.value}</p>
             </div>
           ))}
         </div>
 
-        <div className="flex flex-wrap gap-3 mb-6">
-          <div className="relative flex-1 min-w-60">
-            <Search size={16} className="absolute left-3 top-3 text-gray-400" />
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search projects..."
-              className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-orange-400 text-sm" />
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {['all', ...STAGES].map(s => (
-              <button key={s} onClick={() => setFilterStatus(s)}
-                className={`px-3 py-2 rounded-lg text-xs font-medium transition-colors ${filterStatus === s ? 'bg-gray-900 text-white' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'}`}>
-                {s === 'all' ? 'All' : STATUS_CONFIG[s as ProjectStatus]?.label}
-              </button>
-            ))}
+        {/* Pipeline overview */}
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 mb-6">
+          <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Pipeline Overview</p>
+          <div className="flex items-center gap-1 overflow-x-auto pb-1">
+            {PIPELINE_STEPS.map((step, i) => {
+              const count = projects.filter(p => p.status === step).length
+              const cfg = STATUS_CONFIG[step]
+              return (
+                <div key={step} className="flex items-center gap-1 flex-shrink-0">
+                  <button onClick={() => setFilterStatus(filterStatus === step ? 'all' : step)}
+                    className={`flex flex-col items-center px-3 py-2 rounded-lg transition-colors cursor-pointer border ${filterStatus === step ? 'border-gray-900 bg-gray-900 text-white' : `${cfg.bg} ${cfg.color} border-transparent hover:border-gray-300`}`}>
+                    <span className="text-lg font-black">{count}</span>
+                    <span className="text-xs font-semibold whitespace-nowrap">{cfg.label.replace('🔧 ','').replace('✓ ','')}</span>
+                  </button>
+                  {i < PIPELINE_STEPS.length - 1 && <ChevronRight size={14} className="text-gray-300 flex-shrink-0"/>}
+                </div>
+              )
+            })}
           </div>
         </div>
 
-        {loading ? (
-          <div className="text-center py-20 text-gray-400">Loading projects...</div>
-        ) : filtered.length === 0 ? (
-          <div className="text-center py-20 bg-white rounded-xl border border-gray-100">
-            <Folder size={48} className="mx-auto text-gray-300 mb-4" />
-            <p className="text-gray-500 text-lg">No projects yet</p>
+        {/* Filters */}
+        <div className="flex gap-3 mb-5">
+          <div className="relative flex-1 min-w-52">
+            <Search size={14} className="absolute left-3 top-3 text-gray-400"/>
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search projects..."
+              className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"/>
+          </div>
+        </div>
+
+        {/* Projects list */}
+        {filtered.length === 0 ? (
+          <div className="text-center py-20 bg-white rounded-2xl border border-gray-100">
+            <FolderOpen size={44} className="mx-auto text-gray-300 mb-4"/>
+            <p className="text-gray-500 text-lg font-medium">No projects yet</p>
+            <p className="text-gray-400 text-sm mt-1">Create a quote and click "Convert to Project" to get started</p>
           </div>
         ) : (
           <div className="space-y-3">
             {filtered.map(project => {
-              const status = STATUS_CONFIG[project.status]
-              const progress = Math.round((status.step / 6) * 100)
+              const cfg = STATUS_CONFIG[project.status]
               return (
-                <div key={project.id} className="bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow p-5">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-1">
-                        <h3 className="font-semibold text-gray-900">{project.name}</h3>
-                        <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${status.bg} ${status.color}`}>{status.label}</span>
-                      </div>
-                      {project.client?.name && <p className="text-gray-500 text-sm mb-2">{project.client.name}</p>}
-                      <div className="flex gap-4 text-xs text-gray-400">
-                        {project.start_date && <span className="flex items-center gap-1"><Calendar size={11} />{new Date(project.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>}
-                        {project.end_date && <span>→ {new Date(project.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>}
-                      </div>
+                <div key={project.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow p-5">
+                  <div className="flex items-start gap-4">
+                    {/* Step indicator */}
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 font-black text-lg ${cfg.bg} ${cfg.color}`}>
+                      {cfg.step}
                     </div>
-                    <div className="flex items-center gap-3 ml-6">
-                      {project.total_amount && (
-                        <div className="text-right">
-                          <p className="text-xl font-bold text-gray-900">{formatCurrency(project.total_amount)}</p>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <h3 className="font-bold text-gray-900">{project.name}</h3>
+                        <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${cfg.bg} ${cfg.color}`}>{cfg.label}</span>
+                      </div>
+                      <p className="text-gray-500 text-sm">{project.client?.name}{project.client?.company ? ` · ${project.client.company}` : ''}</p>
+                      {project.service_description && (
+                        <p className="text-gray-400 text-xs mt-1">{project.service_description}</p>
+                      )}
+
+                      {/* Linked documents */}
+                      <div className="flex gap-3 mt-2">
+                        {project.quote && (
+                          <button onClick={() => router.push(`/quotes/${project.quote_id}`)}
+                            className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium">
+                            <FileText size={11}/>{project.quote.quote_number}
+                          </button>
+                        )}
+                        {project.invoice && (
+                          <button onClick={() => router.push(`/invoices/${project.invoice_id}`)}
+                            className={`flex items-center gap-1 text-xs font-medium ${project.invoice.status === 'paid' ? 'text-green-600 hover:text-green-800' : 'text-orange-600 hover:text-orange-800'}`}>
+                            <Receipt size={11}/>{project.invoice.invoice_number}
+                            {project.invoice.status === 'paid' ? ' ✓' : project.invoice.status === 'deposit_paid' ? ' (dep ✓)' : ''}
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Timeline */}
+                      {(project.deposit_paid_at || project.start_date) && (
+                        <div className="flex gap-4 mt-2 text-xs text-gray-400">
+                          {project.start_date && <span>Start: {new Date(project.start_date).toLocaleDateString('en-US', { month:'short', day:'numeric' })}</span>}
+                          {project.deposit_paid_at && <span>Deposit: {new Date(project.deposit_paid_at).toLocaleDateString('en-US', { month:'short', day:'numeric' })}</span>}
+                          {project.final_paid_at && <span>Paid: {new Date(project.final_paid_at).toLocaleDateString('en-US', { month:'short', day:'numeric' })}</span>}
                         </div>
                       )}
-                      <div className="flex flex-col gap-1">
-                        <select value={project.status} onChange={e => updateStatus(project.id, e.target.value as ProjectStatus)}
-                          className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-orange-400 bg-white cursor-pointer">
-                          {STAGES.map(s => <option key={s} value={s}>{STATUS_CONFIG[s].label}</option>)}
-                        </select>
-                        <div className="flex gap-1 justify-end">
-                          <button onClick={() => { setEditing(project); setForm({ name: project.name, client_id: project.client_id || '', status: project.status, total_amount: project.total_amount?.toString() || '', notes: project.notes || '', start_date: project.start_date || '', end_date: project.end_date || '' }); setShowForm(true) }}
-                            className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors"><Edit2 size={14} /></button>
-                          <button onClick={() => deleteProject(project.id)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"><Trash2 size={14} /></button>
-                        </div>
-                      </div>
                     </div>
-                  </div>
-                  {/* Progress bar */}
-                  <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                    <div className={`h-full rounded-full transition-all ${project.status === 'completed' || project.status === 'invoiced' ? 'bg-green-500' : 'bg-orange-500'}`} style={{ width: `${progress}%` }} />
+
+                    <div className="flex-shrink-0 flex flex-col items-end gap-2">
+                      {project.total_amount && (
+                        <p className="text-xl font-bold text-gray-900">{formatCurrency(project.total_amount)}</p>
+                      )}
+                      <select value={project.status}
+                        onChange={e => updateStatus(project.id, e.target.value as ProjectStatus)}
+                        className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-orange-400 cursor-pointer">
+                        {PIPELINE_STEPS.map(s => (
+                          <option key={s} value={s}>{STATUS_CONFIG[s].label.replace('🔧 ','').replace('✓ ','')}</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                 </div>
               )
@@ -203,64 +214,6 @@ export default function ProjectsPage() {
           </div>
         )}
       </div>
-
-      {showForm && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-5">{editing ? 'Edit Project' : 'New Project'}</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1 block">Project Name *</label>
-                <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="e.g. Fleet Wrap — Acme Corp"
-                  className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400" />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1 block">Client</label>
-                <select value={form.client_id} onChange={e => setForm({ ...form, client_id: e.target.value })}
-                  className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400">
-                  <option value="">No client assigned</option>
-                  {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1 block">Status</label>
-                  <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value as ProjectStatus })}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400">
-                    {STAGES.map(s => <option key={s} value={s}>{STATUS_CONFIG[s].label}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1 block">Total Amount ($)</label>
-                  <input type="number" value={form.total_amount} onChange={e => setForm({ ...form, total_amount: e.target.value })}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400" />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1 block">Start Date</label>
-                  <input type="date" value={form.start_date} onChange={e => setForm({ ...form, start_date: e.target.value })}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400" />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1 block">End Date</label>
-                  <input type="date" value={form.end_date} onChange={e => setForm({ ...form, end_date: e.target.value })}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400" />
-                </div>
-              </div>
-              <div>
-                <label className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1 block">Notes</label>
-                <textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} rows={2}
-                  className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 resize-none" />
-              </div>
-            </div>
-            <div className="flex gap-3 mt-6">
-              <button onClick={() => setShowForm(false)} className="flex-1 border border-gray-200 text-gray-600 py-2.5 rounded-lg font-medium hover:bg-gray-50">Cancel</button>
-              <button onClick={saveProject} disabled={saving || !form.name.trim()} className="flex-1 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white py-2.5 rounded-lg font-semibold">
-                {saving ? 'Saving...' : (editing ? 'Update' : 'Create Project')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
