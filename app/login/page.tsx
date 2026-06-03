@@ -17,14 +17,23 @@ export default function LoginPage() {
     setLoading(true)
     setError('')
 
-    const { error: authError } = await supabase.auth.signInWithPassword({ email, password })
+    try {
+      const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password })
+      console.log('Auth attempt:', { data, error: authError })
 
-    if (authError) {
-      setError(authError.message)
+      if (authError) {
+        setError(authError.message)
+        setLoading(false)
+      } else if (data?.session) {
+        window.location.href = '/dashboard'
+      } else {
+        setError('Login failed — no session returned. Check Supabase URL config.')
+        setLoading(false)
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err)
+      setError('Error: ' + msg)
       setLoading(false)
-    } else {
-      router.push('/dashboard')
-      router.refresh()
     }
   }
 
