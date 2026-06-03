@@ -1,7 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
 
 const NAV_ITEMS = [
   { href: '/dashboard',     label: 'Dashboard' },
@@ -17,10 +18,8 @@ const NAV_ITEMS = [
   { href: '/admin/pricing', label: 'Pricing Admin' },
 ]
 
-import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
-
 export default function NavSidebar() {
+  const pathname = usePathname()
   const router = useRouter()
 
   async function handleLogout() {
@@ -28,8 +27,6 @@ export default function NavSidebar() {
     router.push('/login')
     router.refresh()
   }
-
-  const pathname = usePathname()
 
   return (
     <aside className="w-64 bg-gray-900 text-white flex flex-col fixed h-full z-40">
@@ -57,7 +54,14 @@ export default function NavSidebar() {
           )
         })}
       </nav>
-      <div className="p-4 border-t border-gray-700">
+      <div className="p-4 border-t border-gray-700 space-y-2">
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-2 px-4 py-2 rounded-lg text-sm text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
+        >
+          <span>🚪</span>
+          <span>Sign Out</span>
+        </button>
         <p className="text-gray-500 text-xs font-medium">Infinity Wrap Design</p>
         <p className="text-gray-600 text-xs">North Carolina</p>
       </div>
