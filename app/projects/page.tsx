@@ -51,11 +51,31 @@ export default function ProjectsPage() {
 
   async function loadProjects() {
     setLoading(true)
-    const { data } = await supabase
+    // Split query to avoid circular FK join (HTTP 300 ambiguity error)
+    const { data: projectsData } = await supabase
       .from('projects')
-      .select('*, client:clients(name,company), quote:quotes(quote_number), invoice:invoices(invoice_number,status)')
+      .select('*, client:clients(name,company), quote:quotes(quote_number)')
       .order('created_at', { ascending: false })
-    if (data) setProjects(data as Project[])
+    
+    if (projectsData && projectsData.length > 0) {
+      // Fetch invoice info separately for each project that has an invoice_id
+      const projectsWithInvoices = await Promise.all(
+        projectsData.map(async (project) => {
+          if (project.invoice_id) {
+            const { data: inv } = await supabase
+              .from('invoices')
+              .select('invoice_number, status')
+              .eq('id', project.invoice_id)
+              .single()
+            return { ...project, invoice: inv || null }
+          }
+          return { ...project, invoice: null }
+        })
+      )
+      setProjects(projectsWithInvoices as Project[])
+    } else if (projectsData) {
+      setProjects(projectsData as Project[])
+    }
     setLoading(false)
   }
 
@@ -217,3 +237,4 @@ export default function ProjectsPage() {
     </div>
   )
 }
+
