@@ -51,31 +51,37 @@ export default function ProjectsPage() {
 
   async function loadProjects() {
     setLoading(true)
-    // Split query to avoid circular FK join (HTTP 300 ambiguity error)
+    // Load bare projects first to avoid FK ambiguity (HTTP 300) with joins
     const { data: projectsData } = await supabase
       .from('projects')
-      .select('*, client:clients(name,company), quote:quotes(quote_number)')
+      .select('*')
       .order('created_at', { ascending: false })
     
-    if (projectsData && projectsData.length > 0) {
-      // Fetch invoice info separately for each project that has an invoice_id
-      const projectsWithInvoices = await Promise.all(
-        projectsData.map(async (project) => {
-          if (project.invoice_id) {
-            const { data: inv } = await supabase
-              .from('invoices')
-              .select('invoice_number, status')
-              .eq('id', project.invoice_id)
-              .single()
-            return { ...project, invoice: inv || null }
-          }
-          return { ...project, invoice: null }
-        })
-      )
-      setProjects(projectsWithInvoices as Project[])
-    } else if (projectsData) {
-      setProjects(projectsData as Project[])
-    }
+    if (!projectsData) { setLoading(false); return }
+
+    // Enrich each project with related data separately
+    const enriched = await Promise.all(
+      projectsData.map(async (project) => {
+        const [clientRes, quoteRes, invoiceRes] = await Promise.all([
+          project.client_id
+            ? supabase.from('clients').select('name,company').eq('id', project.client_id).single()
+            : Promise.resolve({ data: null }),
+          project.quote_id
+            ? supabase.from('quotes').select('quote_number').eq('id', project.quote_id).single()
+            : Promise.resolve({ data: null }),
+          project.invoice_id
+            ? supabase.from('invoices').select('invoice_number,status').eq('id', project.invoice_id).single()
+            : Promise.resolve({ data: null }),
+        ])
+        return {
+          ...project,
+          client: clientRes.data || null,
+          quote: quoteRes.data || null,
+          invoice: invoiceRes.data || null,
+        }
+      })
+    )
+    setProjects(enriched as Project[])
     setLoading(false)
   }
 
