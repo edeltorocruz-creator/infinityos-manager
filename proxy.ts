@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server'
 
 const PUBLIC_PATHS = ['/login', '/_next', '/favicon.ico', '/api']
 
-export default function proxy(req: NextRequest) {
+export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl
 
   // Allow public paths
