@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
-import NavSidebar from '@/components/NavSidebar'
+import AppShell from '@/components/AppShell'
 
 export const metadata: Metadata = {
   title: 'Infinity Wrap Manager OS',
@@ -11,10 +11,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body className="font-sans antialiased">
-        <div className="flex min-h-screen">
-          <NavSidebar />
-          <main className="flex-1 ml-64">{children}</main>
-        </div>
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   )
