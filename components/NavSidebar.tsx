@@ -17,7 +17,18 @@ const NAV_ITEMS = [
   { href: '/admin/pricing', label: 'Pricing Admin' },
 ]
 
+import { useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
+
 export default function NavSidebar() {
+  const router = useRouter()
+
+  async function handleLogout() {
+    await supabase.auth.signOut()
+    router.push('/login')
+    router.refresh()
+  }
+
   const pathname = usePathname()
 
   return (
