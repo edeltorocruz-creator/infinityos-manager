@@ -1,32 +1,34 @@
-import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
+import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
+const PUBLIC_PATHS = ['/login', '/_next', '/favicon.ico', '/api']
+
 export async function middleware(req: NextRequest) {
-  const res = NextResponse.next()
-  const supabase = createMiddlewareClient({ req, res })
+  const { pathname } = req.nextUrl
 
-  const { data: { session } } = await supabase.auth.getSession()
-
-  // If no session and not on login page, redirect to login
-  if (!session && req.nextUrl.pathname !== '/login') {
-    const redirectUrl = req.nextUrl.clone()
-    redirectUrl.pathname = '/login'
-    return NextResponse.redirect(redirectUrl)
+  // Allow public paths
+  if (PUBLIC_PATHS.some(p => pathname.startsWith(p))) {
+    return NextResponse.next()
   }
 
-  // If session and on login page, redirect to dashboard
-  if (session && req.nextUrl.pathname === '/login') {
-    const redirectUrl = req.nextUrl.clone()
-    redirectUrl.pathname = '/dashboard'
-    return NextResponse.redirect(redirectUrl)
+  // Check for Supabase session cookie
+  const accessToken = req.cookies.get('sb-access-token')?.value ||
+    req.cookies.get(`sb-${process.env.NEXT_PUBLIC_SUPABASE_URL?.split('//')[1]?.split('.')[0]}-auth-token`)?.value
+
+  // Check all cookies for supabase auth token
+  const allCookies = req.cookies.getAll()
+  const authCookie = allCookies.find(c => c.name.includes('auth-token') || c.name.includes('access-token'))
+
+  if (!authCookie && !accessToken) {
+    const loginUrl = req.nextUrl.clone()
+    loginUrl.pathname = '/login'
+    return NextResponse.redirect(loginUrl)
   }
 
-  return res
+  return NextResponse.next()
 }
 
 export const config = {
-  matcher: [
-    '/((?!_next/static|_next/image|favicon.ico).*)',
-  ],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
 }
