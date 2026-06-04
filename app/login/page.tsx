@@ -1,17 +1,25 @@
 'use client'
 export const dynamic = 'force-dynamic'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const emailRef = useRef<HTMLInputElement>(null)
+  const passwordRef = useRef<HTMLInputElement>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
+    const email = emailRef.current?.value || ''
+    const password = passwordRef.current?.value || ''
+    
+    if (!email || !password) {
+      setError('Please enter email and password')
+      return
+    }
+
     setLoading(true)
     setError('')
 
@@ -31,8 +39,7 @@ export default function LoginPage() {
         setLoading(false)
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err)
-      setError('Error: ' + msg)
+      setError('Error: ' + (err instanceof Error ? err.message : String(err)))
       setLoading(false)
     }
   }
@@ -55,7 +62,6 @@ export default function LoginPage() {
         maxWidth: '400px',
         boxShadow: '0 25px 50px rgba(0,0,0,0.5)'
       }}>
-        {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: '40px' }}>
           <div style={{
             background: 'linear-gradient(135deg, #ff6b00, #ff9500)',
@@ -72,9 +78,7 @@ export default function LoginPage() {
           <h1 style={{ color: '#fff', fontSize: '22px', fontWeight: 800, margin: '0 0 4px', letterSpacing: '-0.5px' }}>
             Infinity Wrap
           </h1>
-          <p style={{ color: '#6b7280', fontSize: '14px', margin: 0 }}>
-            Manager OS
-          </p>
+          <p style={{ color: '#6b7280', fontSize: '14px', margin: 0 }}>Manager OS</p>
         </div>
 
         <form onSubmit={handleLogin}>
@@ -83,23 +87,16 @@ export default function LoginPage() {
               Email
             </label>
             <input
+              ref={emailRef}
               type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
+              defaultValue=""
               placeholder="edeltorocruz@gmail.com"
               required
               autoComplete="email"
               style={{
-                width: '100%',
-                background: '#0a0c13',
-                border: '1px solid #1e2235',
-                borderRadius: '10px',
-                padding: '12px 16px',
-                color: '#fff',
-                fontSize: '14px',
-                outline: 'none',
-                boxSizing: 'border-box',
-                transition: 'border-color 0.2s'
+                width: '100%', background: '#0a0c13', border: '1px solid #1e2235',
+                borderRadius: '10px', padding: '12px 16px', color: '#fff',
+                fontSize: '14px', outline: 'none', boxSizing: 'border-box'
               }}
               onFocus={e => e.target.style.borderColor = '#ff6b00'}
               onBlur={e => e.target.style.borderColor = '#1e2235'}
@@ -111,22 +108,16 @@ export default function LoginPage() {
               Password
             </label>
             <input
+              ref={passwordRef}
               type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
+              defaultValue=""
               placeholder="••••••••"
               required
               autoComplete="current-password"
               style={{
-                width: '100%',
-                background: '#0a0c13',
-                border: '1px solid #1e2235',
-                borderRadius: '10px',
-                padding: '12px 16px',
-                color: '#fff',
-                fontSize: '14px',
-                outline: 'none',
-                boxSizing: 'border-box',
+                width: '100%', background: '#0a0c13', border: '1px solid #1e2235',
+                borderRadius: '10px', padding: '12px 16px', color: '#fff',
+                fontSize: '14px', outline: 'none', boxSizing: 'border-box'
               }}
               onFocus={e => e.target.style.borderColor = '#ff6b00'}
               onBlur={e => e.target.style.borderColor = '#1e2235'}
@@ -135,13 +126,9 @@ export default function LoginPage() {
 
           {error && (
             <div style={{
-              background: 'rgba(239,68,68,0.1)',
-              border: '1px solid rgba(239,68,68,0.3)',
-              borderRadius: '10px',
-              padding: '12px 16px',
-              color: '#f87171',
-              fontSize: '13px',
-              marginBottom: '20px'
+              background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)',
+              borderRadius: '10px', padding: '12px 16px', color: '#f87171',
+              fontSize: '13px', marginBottom: '20px'
             }}>
               {error}
             </div>
@@ -153,15 +140,10 @@ export default function LoginPage() {
             style={{
               width: '100%',
               background: loading ? '#374151' : 'linear-gradient(135deg, #ff6b00, #ff9500)',
-              border: 'none',
-              borderRadius: '10px',
-              padding: '14px',
-              color: '#fff',
-              fontSize: '15px',
-              fontWeight: 700,
+              border: 'none', borderRadius: '10px', padding: '14px',
+              color: '#fff', fontSize: '15px', fontWeight: 700,
               cursor: loading ? 'not-allowed' : 'pointer',
-              boxShadow: loading ? 'none' : '0 4px 15px rgba(255,107,0,0.3)',
-              transition: 'all 0.2s'
+              boxShadow: loading ? 'none' : '0 4px 15px rgba(255,107,0,0.3)'
             }}
           >
             {loading ? 'Signing in...' : 'Sign In →'}
