@@ -203,8 +203,12 @@ export default function QuoteDetailPage() {
 
             <button onClick={() => handlePrint()}
               className="flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg text-sm font-semibold">
-              <Printer size={14}/> Print / PDF
+              <Printer size={14}/> Print
             </button>
+            <a href={`/api/pdf/quote/${id}`} target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 text-white px-3 py-2 rounded-lg text-sm font-bold no-underline" style={{textDecoration:'none'}}>
+              <FileText size={14}/> Download PDF
+            </a>
           </div>
         </div>
 

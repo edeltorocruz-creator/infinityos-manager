@@ -5,7 +5,7 @@ import { useEffect, useState, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { formatCurrency, formatDate, WARRANTY_TEXT, TERMS_TEXT } from '@/lib/quote-engine'
-import { ArrowLeft, Printer, CheckCircle, DollarSign, AlertCircle, CreditCard, FolderOpen, Zap } from 'lucide-react'
+import { ArrowLeft, Printer, CheckCircle, DollarSign, AlertCircle, CreditCard, FolderOpen, Zap, FileText } from 'lucide-react'
 import { useReactToPrint } from 'react-to-print'
 
 type InvoiceStatus = 'unpaid' | 'deposit_paid' | 'paid' | 'overdue' | 'cancelled'
@@ -195,9 +195,13 @@ export default function InvoiceDetailPage() {
               </button>
             )}
             <button onClick={handlePrint}
-              className="flex items-center gap-1.5 bg-gray-900 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-semibold">
+              className="flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-semibold">
               <Printer size={14}/>Print
             </button>
+            <a href={`/api/pdf/invoice/${id}`} target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 text-white px-3 py-2 rounded-lg text-sm font-bold" style={{textDecoration:'none'}}>
+              <FileText size={14}/> Download PDF
+            </a>
           </div>
         </div>
 
@@ -296,9 +300,9 @@ export default function InvoiceDetailPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b-2 border-gray-900">
-                  <th className="text-left py-3 text-xs font-bold text-gray-600 uppercase tracking-wide">Description</th>
-                  <th className="text-center py-3 text-xs font-bold text-gray-600 uppercase tracking-wide w-20">Sq Ft</th>
-                  <th className="text-center py-3 text-xs font-bold text-gray-600 uppercase tracking-wide w-20">Material</th>
+                  <th className="text-left py-3 text-xs font-bold text-gray-600 uppercase tracking-wide">Service / Description</th>
+                  <th className="text-center py-3 text-xs font-bold text-gray-600 uppercase tracking-wide w-16">Qty</th>
+                  <th className="text-right py-3 text-xs font-bold text-gray-600 uppercase tracking-wide w-24">Unit $</th>
                   <th className="text-right py-3 text-xs font-bold text-gray-600 uppercase tracking-wide w-28">Amount</th>
                 </tr>
               </thead>
@@ -307,18 +311,13 @@ export default function InvoiceDetailPage() {
                   <tr key={i} className={`border-b border-gray-100 ${i % 2 === 1 ? 'bg-gray-50' : ''}`}>
                     <td className="py-4">
                       <p className="font-semibold text-gray-900">{item.label}</p>
-                      {item.description && item.description !== item.label && <p className="text-gray-500 text-sm">{item.description}</p>}
-                      {item.notes && <p className="text-gray-400 text-xs italic mt-0.5">{item.notes}</p>}
-                      <div className="flex flex-wrap gap-3 mt-1 text-xs text-gray-400">
-                        {item.L && <span>L: {item.L} ft</span>}
-                        {item.W && item.H && <span>{item.W}ft × {item.H}ft</span>}
-                        {item.price_per_sqft > 0 && <span>${item.price_per_sqft}/sqft</span>}
-                        {item.complexity && item.complexity !== 'simple' && <span className="capitalize">{item.complexity}</span>}
-                      </div>
+                      {item.description && item.description !== item.label && (
+                        <p className="text-gray-500 text-sm mt-0.5">{item.description}</p>
+                      )}
                     </td>
-                    <td className="py-4 text-center text-sm text-gray-600">{item.sqft > 0 ? item.sqft : '—'}</td>
-                    <td className="py-4 text-center text-xs text-gray-500 uppercase">{item.material || '—'}</td>
-                    <td className="py-4 text-right font-bold text-gray-900">{formatCurrency(item.subtotal)}</td>
+                    <td className="py-4 text-center text-sm text-gray-600">{item.qty ?? 1}</td>
+                    <td className="py-4 text-right text-sm text-gray-600">{formatCurrency(item.unitPrice ?? 0)}</td>
+                    <td className="py-4 text-right font-bold text-gray-900">{formatCurrency(item.subtotal ?? 0)}</td>
                   </tr>
                 ))}
               </tbody>
