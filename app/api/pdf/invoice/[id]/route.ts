@@ -56,7 +56,8 @@ export async function GET(req: NextRequest, context: any) {
     paymentMethod: inv.payment_method || '', depositRate: 50,
   }
 
-  const buffer = await renderToBuffer(createElement(DocumentPDF, { doc }))
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const buffer = await renderToBuffer(createElement(DocumentPDF as any, { doc }) as any)
   return new NextResponse(buffer, {
     headers: { 'Content-Type': 'application/pdf', 'Content-Disposition': `attachment; filename="${inv.invoice_number}.pdf"` }
   })
