@@ -19,7 +19,8 @@ function fmtDate(iso?: string) {
 }
 
 export async function GET(req: NextRequest, context: any) {
-  const id = context.params.id
+  const params = await context.params
+  const id = params.id
   // Use service_role key server-side to bypass RLS (safe — never exposed to client)
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
   const serviceKey  = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
