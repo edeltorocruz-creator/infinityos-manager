@@ -56,7 +56,7 @@ export async function GET(req: NextRequest, context: any) {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const buffer = await renderToBuffer(createElement(DocumentPDF as any, { doc }) as any)
-  return new NextResponse(buffer, {
+  return new NextResponse(new Uint8Array(buffer), {
     headers: { 'Content-Type': 'application/pdf', 'Content-Disposition': `attachment; filename="${q.quote_number}.pdf"` }
   })
 }
