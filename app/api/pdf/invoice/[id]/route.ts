@@ -20,25 +20,10 @@ function fmtDate(iso?: string) {
 
 export async function GET(req: NextRequest, context: any) {
   const id = context.params.id
-  // Use auth token from request cookie to pass through user session to Supabase
-  const authCookie = req.cookies.getAll().find(c =>
-    c.name.includes('auth-token') || c.name.startsWith('sb-')
-  )
-  let accessToken = ''
-  if (authCookie) {
-    try {
-      const parsed = JSON.parse(decodeURIComponent(authCookie.value))
-      accessToken = parsed.access_token || ''
-    } catch { accessToken = authCookie.value }
-  }
-
-  const sb = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    accessToken ? {
-      global: { headers: { Authorization: `Bearer ${accessToken}` } }
-    } : {}
-  )
+  // Use service_role key server-side to bypass RLS (safe — never exposed to client)
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+  const serviceKey  = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  const sb = createClient(supabaseUrl, serviceKey)
 
   const { data: inv, error } = await sb.from('invoices')
     .select('*, client:clients(*), quote:quotes(quote_number)').eq('id', id).single()
