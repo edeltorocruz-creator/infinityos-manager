@@ -4,13 +4,13 @@ import { renderToBuffer } from '@react-pdf/renderer'
 import { createElement } from 'react'
 import DocumentPDF from '@/components/DocumentPDF'
 
-const BUSINESS = {
-  name:         'Infinity Wrap Design',
-  phone:        '(919) 649-0755',
-  email:        'infinitywrapdesign@gmail.com',
-  address:      'North Carolina',
+const BUSINESS_DEFAULT = {
+  name: 'Infinity Wrap Design', logoText: 'IW',
+  phone: '(919) 649-0755', email: 'infinitywrapdesign@gmail.com',
+  website: 'www.infinitywrapdesign.com', address: 'North Carolina',
+  instagram: '@infinitywrapdesign', facebook: 'Infinity Wrap Design',
   warrantyText: '1-year workmanship warranty on installation. Material manufacturer warranty applies.',
-  terms:        'PAYMENT: Balance due upon completion before delivery.\nCANCELLATION: Deposits are non-refundable once materials have been ordered.\nLATE PAYMENT: Accounts past due 30 days are subject to a 1.5% monthly finance charge.',
+  terms: 'PAYMENT: Balance due upon completion before delivery.\nCANCELLATION: Deposits are non-refundable once materials have been ordered.\nLATE PAYMENT: Accounts past due 30 days are subject to a 1.5% monthly finance charge.',
 }
 
 function fmtDate(iso?: string) {
@@ -25,6 +25,15 @@ export async function GET(req: NextRequest, context: any) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
   const serviceKey  = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   const sb = createClient(supabaseUrl, serviceKey)
+
+  const { data: bizData } = await sb.from('business_profiles').select('*').eq('is_active', true).maybeSingle()
+  const biz = bizData ? {
+    name: bizData.name, logoText: bizData.logo_text || bizData.name.slice(0,2).toUpperCase(),
+    phone: bizData.phone||'', email: bizData.email||'', website: bizData.website||'',
+    address: bizData.address||'', instagram: bizData.instagram||'', facebook: bizData.facebook||'',
+    warrantyText: bizData.warranty_text || BUSINESS_DEFAULT.warrantyText,
+    terms: bizData.terms_text || BUSINESS_DEFAULT.terms,
+  } : BUSINESS_DEFAULT
 
   const { data: inv, error } = await sb.from('invoices')
     .select('*, client:clients(*), quote:quotes(quote_number)').eq('id', id).single()
@@ -48,7 +57,7 @@ export async function GET(req: NextRequest, context: any) {
     linkedNumber: inv.quote?.quote_number || '',
     status: inv.status, date: fmtDate(inv.created_at),
     dueDate: inv.due_date ? fmtDate(inv.due_date) : '',
-    business: BUSINESS,
+    business: biz,
     client: { name: client.name || '—', company: client.company || '', phone: client.phone || '', email: client.email || '' },
     items,
     subtotal: inv.subtotal || 0, tax: inv.tax_amount || 0, taxRate: inv.tax_rate || 0.0675,

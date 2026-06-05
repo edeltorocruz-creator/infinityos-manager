@@ -4,13 +4,14 @@ import { renderToBuffer } from '@react-pdf/renderer'
 import { createElement } from 'react'
 import DocumentPDF from '@/components/DocumentPDF'
 
-const BUSINESS = {
-  name:         'Infinity Wrap Design',
-  phone:        '(919) 649-0755',
-  email:        'infinitywrapdesign@gmail.com',
-  address:      'North Carolina',
+// Default business — used as fallback if DB not available
+const BUSINESS_DEFAULT = {
+  name: 'Infinity Wrap Design', logoText: 'IW',
+  phone: '(919) 649-0755', email: 'infinitywrapdesign@gmail.com',
+  website: 'www.infinitywrapdesign.com', address: 'North Carolina',
+  instagram: '@infinitywrapdesign', facebook: 'Infinity Wrap Design',
   warrantyText: '1-year workmanship warranty on installation. Material manufacturer warranty applies (3M: 7yr, Avery: 5yr, GF: 5yr).',
-  terms:        'PAYMENT: 50% deposit required to schedule. Balance due upon completion before delivery.\nDESIGN: Design approval required before printing. Revisions after approval may incur additional fees.\nCANCELLATION: Deposits are non-refundable once materials have been ordered or design work has begun.\nVEHICLE: Customer is responsible for ensuring vehicle is clean and in good condition prior to installation.\nCHANGES: Any scope changes must be approved in writing and may affect pricing and timeline.',
+  terms: 'PAYMENT: 50% deposit required to schedule. Balance due upon completion before delivery.\nDESIGN: Design approval required before printing.\nCANCELLATION: Deposits are non-refundable once materials have been ordered or design work has begun.\nVEHICLE: Customer is responsible for ensuring vehicle is clean and in good condition prior to installation.',
 }
 
 function fmtDate(iso?: string) {
@@ -25,6 +26,21 @@ export async function GET(req: NextRequest, context: any) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
   const serviceKey  = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   const sb = createClient(supabaseUrl, serviceKey)
+
+  // Load active business profile from DB
+  const { data: bizData } = await sb.from('business_profiles').select('*').eq('is_active', true).maybeSingle()
+  const biz = bizData ? {
+    name:         bizData.name,
+    logoText:     bizData.logo_text || bizData.name.slice(0,2).toUpperCase(),
+    phone:        bizData.phone || '',
+    email:        bizData.email || '',
+    website:      bizData.website || '',
+    address:      bizData.address || '',
+    instagram:    bizData.instagram || '',
+    facebook:     bizData.facebook || '',
+    warrantyText: bizData.warranty_text || BUSINESS_DEFAULT.warrantyText,
+    terms:        bizData.terms_text || BUSINESS_DEFAULT.terms,
+  } : BUSINESS_DEFAULT
 
   const { data: q, error } = await sb.from('quotes')
     .select('*, client:clients(*)').eq('id', id).single()
@@ -48,7 +64,7 @@ export async function GET(req: NextRequest, context: any) {
     type: 'quote' as const, docNumber: q.quote_number, status: q.status,
     date: fmtDate(q.created_at),
     validUntil: q.expires_at ? fmtDate(q.expires_at) : fmtDate(new Date(Date.now() + 30*86400000).toISOString()),
-    business: BUSINESS,
+    business: biz,
     client: { name: client.name || '—', company: client.company || '', phone: client.phone || '', email: client.email || '' },
     items,
     subtotal: q.subtotal || 0, tax: q.tax_amount || 0, taxRate: q.tax_rate || 0.0675,
