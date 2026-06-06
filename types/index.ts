@@ -28,6 +28,8 @@ export interface Quote {
   expires_at?: string | null
   accepted_at?: string | null
   project_id?: string | null
+  deposit_amount?: number
+  balance?: number
   created_at?: string
   updated_at?: string
   client?: Client
