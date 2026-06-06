@@ -240,16 +240,16 @@ export default function QuotesPage() {
                             <span>Total</span>
                             <span>{formatCurrency(quote.total)}</span>
                           </div>
-                          {quote.deposit_amount > 0 && (
+                          {(quote.deposit_amount ?? 0) > 0 && (
                             <div className="flex justify-between gap-8 text-orange-600 font-semibold">
                               <span>Deposit (50%)</span>
-                              <span>{formatCurrency(quote.deposit_amount)}</span>
+                              <span>{formatCurrency(quote.deposit_amount ?? 0)}</span>
                             </div>
                           )}
-                          {quote.balance > 0 && (
+                          {(quote.balance ?? 0) > 0 && (
                             <div className="flex justify-between gap-8 text-gray-500">
                               <span>Balance due</span>
-                              <span>{formatCurrency(quote.balance)}</span>
+                              <span>{formatCurrency(quote.balance ?? 0)}</span>
                             </div>
                           )}
                         </div>
