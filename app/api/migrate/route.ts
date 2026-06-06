@@ -7,35 +7,20 @@ export async function POST() {
     process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
 
-  // Create table via raw SQL using service role
-  const queries = [
-    `CREATE TABLE IF NOT EXISTS business_profiles (
-      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      name TEXT NOT NULL,
-      type TEXT NOT NULL DEFAULT 'wrap',
-      phone TEXT, email TEXT, website TEXT, address TEXT,
-      instagram TEXT, facebook TEXT, logo_text TEXT,
-      warranty_text TEXT, terms_text TEXT,
-      is_active BOOLEAN NOT NULL DEFAULT false,
-      tax_rate NUMERIC(5,4) DEFAULT 0.0675,
-      deposit_rate NUMERIC(5,4) DEFAULT 0.50,
-      created_at TIMESTAMPTZ DEFAULT now(),
-      updated_at TIMESTAMPTZ DEFAULT now()
-    )`,
-    `ALTER TABLE business_profiles ENABLE ROW LEVEL SECURITY`,
-    `DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='business_profiles' AND policyname='allow_all_bp') THEN CREATE POLICY allow_all_bp ON business_profiles FOR ALL USING (true) WITH CHECK (true); END IF; END $$`,
-  ]
+  // Check if table exists
+  const { data: exists, error: checkErr } = await sb
+    .from('business_profiles').select('id').limit(1)
 
-  const results = []
-  for (const q of queries) {
-    const { error } = await sb.rpc('exec_migration', { sql: q }).catch(() => ({ error: null }))
-    results.push({ q: q.slice(0, 40), error: error?.message || null })
+  if (checkErr?.code === 'PGRST204' || checkErr?.message?.includes('does not exist')) {
+    return NextResponse.json({ 
+      error: 'Table business_profiles does not exist yet. Please run the SQL in supabase/business_profiles_migration.sql via the Supabase SQL editor.',
+      sql_file: 'supabase/business_profiles_migration.sql'
+    }, { status: 422 })
   }
 
-  // Seed initial data via insert (safer than raw SQL)
-  const { data: existing } = await sb.from('business_profiles').select('id').limit(1)
-  if (!existing || existing.length === 0) {
-    await sb.from('business_profiles').insert([
+  // Table exists — seed if empty
+  if (!exists || exists.length === 0) {
+    const { error: seedErr } = await sb.from('business_profiles').insert([
       {
         name: 'Infinity Wrap Design', type: 'wrap',
         phone: '(919) 649-0755', email: 'infinitywrapdesign@gmail.com',
@@ -43,7 +28,7 @@ export async function POST() {
         instagram: '@infinitywrapdesign', facebook: 'Infinity Wrap Design',
         logo_text: 'IW',
         warranty_text: '1-year workmanship warranty on installation. Material manufacturer warranty applies (3M: 7yr, Avery: 5yr, GF: 5yr).',
-        terms_text: 'PAYMENT: 50% deposit required to schedule. Balance due upon completion before delivery.\nDESIGN: Design approval required before printing.\nCANCELLATION: Deposits are non-refundable once materials have been ordered.\nVEHICLE: Customer is responsible for ensuring vehicle is clean and in good condition prior to installation.',
+        terms_text: 'PAYMENT: 50% deposit required to schedule. Balance due upon completion before delivery.\nDESIGN: Design approval required before printing.\nCANCELLATION: Deposits are non-refundable once materials have been ordered or design work has begun.\nVEHICLE: Customer is responsible for ensuring vehicle is clean and in good condition prior to installation.',
         is_active: true, tax_rate: 0.0675, deposit_rate: 0.50
       },
       {
@@ -55,8 +40,9 @@ export async function POST() {
         is_active: false, tax_rate: 0.0675, deposit_rate: 0.50
       }
     ])
-    results.push({ q: 'INSERT seed data', error: null })
+    if (seedErr) return NextResponse.json({ error: seedErr.message }, { status: 500 })
+    return NextResponse.json({ done: true, seeded: true })
   }
 
-  return NextResponse.json({ done: true, results })
+  return NextResponse.json({ done: true, message: `Already has ${exists.length} profiles` })
 }
