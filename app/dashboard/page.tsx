@@ -1,7 +1,7 @@
 'use client'
 export const dynamic = 'force-dynamic'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/quote-engine'
@@ -9,7 +9,7 @@ import {
   Phone, FileText, DollarSign, FolderOpen, Users, Target,
   Receipt, TrendingUp, TrendingDown, Zap, Plus, RefreshCw,
   ArrowRight, AlertTriangle, CheckCircle, Clock, Flame,
-  Brain, Sparkles, ChevronRight
+  Brain, Sparkles, ChevronRight, X
 } from 'lucide-react'
 
 // ── helpers ──
@@ -29,7 +29,6 @@ function timeLabel(d: string) {
 }
 
 interface DashData {
-  // Action items
   leadsToContact:   any[]
   hotLeads:         any[]
   pendingQuotes:    any[]
@@ -37,13 +36,11 @@ interface DashData {
   activeProjects:   any[]
   topProspects:     any[]
   recentExpenses:   any[]
-  // Numbers
   revenueCollected: number
   revenueThisMonth: number
   pipelineValue:    number
   outstandingAmount:number
   expensesThisMonth:number
-  // Counts
   newLeadsCount:    number
   overdueInvoices:  number
 }
@@ -54,16 +51,33 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [aiPlan, setAiPlan] = useState<string | null>(null)
   const [loadingPlan, setLoadingPlan] = useState(false)
+
+  // ── Quick-lead inline (no modal) ──
+  const [showQuickLead, setShowQuickLead] = useState(false)
+  const [qlName, setQlName] = useState('')
+  const [qlPhone, setQlPhone] = useState('')
+  const [qlSaving, setQlSaving] = useState(false)
+  const qlNameRef = useRef<HTMLInputElement>(null)
+
+  // ── Full lead modal (4 fields, via "+" icon) ──
   const [showLeadModal, setShowLeadModal] = useState(false)
-  const [showExpenseModal, setShowExpenseModal] = useState(false)
   const [quickLead, setQuickLead] = useState({ name: '', phone: '', service: '', value: '' })
+
+  // ── Quick expense modal ──
+  const [showExpenseModal, setShowExpenseModal] = useState(false)
   const [quickExpense, setQuickExpense] = useState({ description: '', amount: '', category: 'Materials' })
   const [saving, setSaving] = useState(false)
+
   const now = new Date()
   const greeting = now.getHours() < 12 ? 'Good morning' : now.getHours() < 17 ? 'Good afternoon' : 'Good evening'
   const today = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
 
   useEffect(() => { loadAll() }, [])
+
+  // Auto-focus name input when quick-lead row opens
+  useEffect(() => {
+    if (showQuickLead) setTimeout(() => qlNameRef.current?.focus(), 50)
+  }, [showQuickLead])
 
   async function loadAll() {
     setLoading(true)
@@ -90,7 +104,6 @@ export default function DashboardPage() {
     const expenses = expensesRes.data || []
     const paidInvoices = paidInvoicesRes.data || []
 
-    // Revenue calculations
     const revenueCollected = paidInvoices.reduce((s, i) => s + i.total, 0)
     const revenueThisMonth = paidInvoices
       .filter(i => i.created_at >= monthStart)
@@ -100,7 +113,6 @@ export default function DashboardPage() {
     const outstandingAmount = invoices.reduce((s, i) => s + (i.balance_due || 0), 0)
     const expensesThisMonth = expenses.reduce((s, e) => s + e.amount, 0)
 
-    // Leads needing contact (sorted by urgency)
     const leadsToContact = leads
       .map(l => ({ ...l, _days: daysSince(l.last_contacted_at || l.created_at) }))
       .filter(l => l._days >= 2)
@@ -162,6 +174,28 @@ export default function DashboardPage() {
     setLoadingPlan(false)
   }
 
+  // ── QUICK LEAD: only name + phone, saves instantly ──
+  async function saveQuickLeadInline() {
+    if (!qlName.trim()) return
+    setQlSaving(true)
+    await supabase.from('leads').insert({
+      name: qlName.trim(),
+      phone: qlPhone.trim() || null,
+      status: 'new',
+      updated_at: new Date().toISOString(),
+    })
+    setQlName(''); setQlPhone('')
+    setShowQuickLead(false)
+    setQlSaving(false)
+    loadAll()
+  }
+
+  function handleQuickLeadKey(e: React.KeyboardEvent) {
+    if (e.key === 'Enter') saveQuickLeadInline()
+    if (e.key === 'Escape') { setShowQuickLead(false); setQlName(''); setQlPhone('') }
+  }
+
+  // ── Full lead modal (4 fields) ──
   async function saveQuickLead() {
     if (!quickLead.name.trim()) return
     setSaving(true)
@@ -199,7 +233,6 @@ export default function DashboardPage() {
 
   const d = data!
 
-  // Compute today's priority score
   const urgentCount = d.leadsToContact.length + d.overdueInvoices + (d.pendingQuotes.filter(q => {
     const exp = q.expires_at ? daysUntil(q.expires_at) : 999
     return exp <= 3
@@ -243,14 +276,14 @@ export default function DashboardPage() {
         )}
 
         {/* ── QUICK ACTIONS ── */}
-        <div className="grid grid-cols-3 md:grid-cols-6 gap-2 mb-6">
+        <div className="grid grid-cols-3 md:grid-cols-6 gap-2 mb-3">
           {[
-            { label: 'Add Lead',       icon: Users,       color: 'bg-blue-500',   action: () => setShowLeadModal(true) },
-            { label: 'New Quote',      icon: FileText,    color: 'bg-orange-500', action: () => router.push('/quotes/new') },
-            { label: 'Add Expense',    icon: Receipt,     color: 'bg-red-500',    action: () => setShowExpenseModal(true) },
-            { label: 'Follow-up',      icon: Phone,       color: 'bg-green-500',  action: () => router.push('/followup') },
-            { label: 'New Invoice',    icon: DollarSign,  color: 'bg-purple-500', action: () => router.push('/quotes') },
-            { label: 'Prospects',      icon: Target,      color: 'bg-gray-700',   action: () => router.push('/prospects') },
+            { label: 'Add Lead',    icon: Users,      color: 'bg-blue-500',   action: () => setShowQuickLead(v => !v) },
+            { label: 'New Quote',   icon: FileText,   color: 'bg-orange-500', action: () => router.push('/quotes/new') },
+            { label: 'Add Expense', icon: Receipt,    color: 'bg-red-500',    action: () => setShowExpenseModal(true) },
+            { label: 'Follow-up',   icon: Phone,      color: 'bg-green-500',  action: () => router.push('/followup') },
+            { label: 'New Invoice', icon: DollarSign, color: 'bg-purple-500', action: () => router.push('/quotes') },
+            { label: 'Prospects',   icon: Target,     color: 'bg-gray-700',   action: () => router.push('/prospects') },
           ].map(btn => (
             <button key={btn.label} onClick={btn.action}
               className={`${btn.color} hover:opacity-90 text-white rounded-xl py-3 px-2 flex flex-col items-center gap-1.5 transition-opacity`}>
@@ -259,6 +292,44 @@ export default function DashboardPage() {
             </button>
           ))}
         </div>
+
+        {/* ── QUICK LEAD INLINE ROW ── */}
+        {showQuickLead && (
+          <div className="bg-white border border-blue-200 rounded-xl px-4 py-3 mb-4 flex items-center gap-3 shadow-sm animate-in">
+            <Users size={16} className="text-blue-500 flex-shrink-0"/>
+            <input
+              ref={qlNameRef}
+              value={qlName}
+              onChange={e => setQlName(e.target.value)}
+              onKeyDown={handleQuickLeadKey}
+              placeholder="Name *"
+              className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 flex-1 min-w-0"
+            />
+            <input
+              value={qlPhone}
+              onChange={e => setQlPhone(e.target.value)}
+              onKeyDown={handleQuickLeadKey}
+              placeholder="Phone (optional)"
+              className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 w-44"
+            />
+            <button
+              onClick={saveQuickLeadInline}
+              disabled={qlSaving || !qlName.trim()}
+              className="bg-blue-500 hover:bg-blue-600 disabled:opacity-40 text-white px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors flex-shrink-0">
+              {qlSaving ? 'Saving...' : 'Save Lead'}
+            </button>
+            <button
+              onClick={() => setShowLeadModal(true)}
+              className="text-xs text-gray-400 hover:text-gray-700 border border-gray-200 rounded-lg px-3 py-1.5 transition-colors flex-shrink-0">
+              + Details
+            </button>
+            <button
+              onClick={() => { setShowQuickLead(false); setQlName(''); setQlPhone('') }}
+              className="text-gray-400 hover:text-gray-600 flex-shrink-0">
+              <X size={16}/>
+            </button>
+          </div>
+        )}
 
         {/* ── REVENUE ROW ── */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
@@ -280,7 +351,6 @@ export default function DashboardPage() {
         {/* ── MAIN ACTION GRID ── */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
 
-          {/* 1. CONTACTAR HOY */}
           <ActionCard
             title="Contactar Hoy"
             icon={<Phone size={16} className="text-red-500"/>}
@@ -311,7 +381,6 @@ export default function DashboardPage() {
             ))}
           </ActionCard>
 
-          {/* 2. HOT LEADS + QUOTES PENDIENTES */}
           <ActionCard
             title="Quotes Pendientes"
             icon={<FileText size={16} className="text-blue-500"/>}
@@ -339,7 +408,6 @@ export default function DashboardPage() {
             })}
           </ActionCard>
 
-          {/* 3. INVOICES POR COBRAR */}
           <ActionCard
             title="Invoices por Cobrar"
             icon={<DollarSign size={16} className="text-orange-500"/>}
@@ -375,7 +443,6 @@ export default function DashboardPage() {
             ))}
           </ActionCard>
 
-          {/* 4. PROYECTOS ACTIVOS */}
           <ActionCard
             title="Proyectos Activos"
             icon={<FolderOpen size={16} className="text-purple-500"/>}
@@ -407,7 +474,6 @@ export default function DashboardPage() {
             })}
           </ActionCard>
 
-          {/* 5. LEADS CALIENTES */}
           {(d.hotLeads.length > 0 || d.newLeadsCount > 0) && (
             <ActionCard
               title="Leads Calientes"
@@ -443,7 +509,6 @@ export default function DashboardPage() {
             </ActionCard>
           )}
 
-          {/* 6. PROSPECTOS RECOMENDADOS */}
           {d.topProspects.length > 0 && (
             <ActionCard
               title="Prospectos Recomendados"
@@ -520,11 +585,11 @@ export default function DashboardPage() {
 
       </div>
 
-      {/* ── QUICK ADD LEAD MODAL ── */}
+      {/* ── FULL LEAD MODAL (4 fields, via "+ Details") ── */}
       {showLeadModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
-            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2"><Users size={18} className="text-blue-500"/>Quick Add Lead</h2>
+            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2"><Users size={18} className="text-blue-500"/>Full Lead Details</h2>
             <div className="space-y-3">
               {[
                 { label: 'Name *', key: 'name', placeholder: 'Full name', type: 'text' },
@@ -552,7 +617,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* ── QUICK ADD EXPENSE MODAL ── */}
+      {/* ── QUICK EXPENSE MODAL ── */}
       {showExpenseModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
@@ -594,7 +659,7 @@ export default function DashboardPage() {
   )
 }
 
-// ── Reusable ActionCard component ──
+// ── Reusable ActionCard ──
 function ActionCard({
   title, icon, count, urgent, href, cta, emptyText, badge, children
 }: {
