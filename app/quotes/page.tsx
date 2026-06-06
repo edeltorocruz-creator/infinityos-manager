@@ -8,8 +8,7 @@ import { Quote } from '@/types'
 import { formatCurrency } from '@/lib/quote-engine'
 import Link from 'next/link'
 import {
-  Plus, FileText, CheckCircle, XCircle, Send, Clock,
-  ChevronDown, ChevronUp, ExternalLink, FolderPlus
+  Plus, FileText, ChevronDown, ChevronUp, ExternalLink, FolderPlus
 } from 'lucide-react'
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
