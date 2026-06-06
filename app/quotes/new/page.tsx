@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { getActiveConfig, type ServiceDef } from '@/lib/business-config'
+import { getActiveConfig, BUSINESS_CONFIGS, type ServiceDef, type BusinessConfig } from '@/lib/business-config'
 import { TAX_RATE, DEPOSIT_RATE, formatCurrency, generateQuoteNumber } from '@/lib/quote-engine'
 import { Plus, Trash2, Save, ArrowLeft, Search, CheckCircle } from 'lucide-react'
 
@@ -26,12 +26,20 @@ function calcTotals(items: LineItem[]) {
 }
 
 const inp = "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-orange-400"
-const QTY_PRESETS = [1, 10, 25, 50, 100, 200, 500]
-
 function QuoteForm() {
   const router      = useRouter()
   const params      = useSearchParams()
-  const config      = getActiveConfig()
+  const [config, setConfig] = useState<BusinessConfig>(getActiveConfig())
+
+  // Load active business type from DB on mount
+  useEffect(() => {
+    supabase.from('business_profiles').select('type').eq('is_active', true).maybeSingle()
+      .then(({ data }) => {
+        if (data?.type && BUSINESS_CONFIGS[data.type as keyof typeof BUSINESS_CONFIGS]) {
+          setConfig(BUSINESS_CONFIGS[data.type as keyof typeof BUSINESS_CONFIGS])
+        }
+      })
+  }, [])
   const clientIdRef = useRef(params.get('clientId') || '')
   const notesRef    = useRef('')
   const [clients,      setClients]      = useState<any[]>([])
@@ -54,9 +62,10 @@ function QuoteForm() {
       if (!data) return
       setClients(data)
       // Auto-select if clientId passed in URL
-      if (params.get('clientId')) {
-        const c = data.find(c => c.id === params.get('clientId'))
-        if (c) setClientSearch(c.name)
+      const urlClientId = params.get('clientId')
+      if (urlClientId) {
+        const c = data.find(c => c.id === urlClientId)
+        if (c) { clientIdRef.current = c.id; setClientSearch(c.name + (c.company ? ` (${c.company})` : '')) }
       }
     })
   }, [])
@@ -252,13 +261,11 @@ function QuoteForm() {
                     </div>
                     <div className="col-span-2">
                       <p className="text-xs text-gray-400 mb-1">Qty</p>
-                      {/* Quick presets */}
-                      <select value={item.qty}
-                        onChange={e => updateItem(item.id,'qty', parseFloat(e.target.value)||1)}
-                        className={inp + ' pr-0'}>
-                        {QTY_PRESETS.map(q => <option key={q} value={q}>{q}</option>)}
-                        <option value={item.qty} disabled hidden>{item.qty}</option>
-                      </select>
+                      <input
+                        type="number" value={item.qty} min={0.5} step={0.5}
+                        onChange={e => updateItem(item.id,'qty',parseFloat(e.target.value)||1)}
+                        className={inp}
+                      />
                     </div>
                     <div className="col-span-2">
                       <p className="text-xs text-gray-400 mb-1">Unit $</p>
@@ -271,11 +278,11 @@ function QuoteForm() {
                       <p className="text-sm font-bold text-gray-900 pt-2">{formatCurrency(item.subtotal)}</p>
                     </div>
                     <div className="col-span-12 flex justify-between items-center mt-1">
-                      {/* Qty quick presets for non-standard values */}
-                      <div className="flex gap-1">
-                        {[1,50,100,200].map(q => (
+                      <div className="flex gap-1 items-center">
+                        <span className="text-xs text-gray-300 mr-1">Quick:</span>
+                        {[1,10,50,100,200,500].map(q => (
                           <button key={q} onClick={() => updateItem(item.id,'qty',q)}
-                            className={`text-xs px-2 py-0.5 rounded border transition-colors ${item.qty===q ? 'border-orange-400 bg-orange-50 text-orange-600' : 'border-gray-200 text-gray-400 hover:border-orange-300'}`}>
+                            className={`text-xs px-2 py-0.5 rounded border transition-colors ${item.qty===q ? 'border-orange-400 bg-orange-50 text-orange-600 font-bold' : 'border-gray-200 text-gray-400 hover:border-orange-300 hover:text-orange-500'}`}>
                             {q}
                           </button>
                         ))}

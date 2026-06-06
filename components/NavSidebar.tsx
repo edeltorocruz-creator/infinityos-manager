@@ -23,8 +23,14 @@ const ADMIN_ITEMS = [
 ]
 
 export default function NavSidebar() {
-  const pathname = usePathname()
-  const router   = useRouter()
+  const pathname    = usePathname()
+  const router      = useRouter()
+  const [bizName, setBizName] = useState('Infinity Wrap Design')
+
+  useEffect(() => {
+    supabase.from('business_profiles').select('name').eq('is_active', true).maybeSingle()
+      .then(({ data }) => { if (data?.name) setBizName(data.name) })
+  }, [])
 
   async function handleLogout() {
     await supabase.auth.signOut()
@@ -76,7 +82,7 @@ export default function NavSidebar() {
           className="w-full flex items-center gap-2 px-4 py-2 rounded-lg text-sm text-gray-400 hover:bg-gray-800 hover:text-white transition-colors">
           <span>🚪</span><span>Sign Out</span>
         </button>
-        <p className="text-gray-500 text-xs font-medium">Infinity Wrap Design</p>
+        <p className="text-gray-500 text-xs font-medium">{bizName}</p>
         <p className="text-gray-600 text-xs">North Carolina</p>
       </div>
     </aside>
