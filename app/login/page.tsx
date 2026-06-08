@@ -2,7 +2,6 @@
 export const dynamic = 'force-dynamic'
 
 import { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase'
 
 export default function LoginPage() {
   const [email,    setEmail]    = useState('edeltorocruz@gmail.com')
@@ -15,10 +14,23 @@ export default function LoginPage() {
     const p = (pwdOverride || password).trim()
     if (!e || !p) { setError('Enter your email and password'); return }
     setLoading(true); setError('')
-    const { data, error: authError } = await supabase.auth.signInWithPassword({ email: e, password: p })
-    if (authError) { setError(authError.message); setLoading(false); return }
-    if (data?.session) window.location.replace('/dashboard')
-    else { setError('Login failed — please try again.'); setLoading(false) }
+    try {
+      const res = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: e, password: p })
+      })
+      const data = await res.json()
+      if (!res.ok || data.error) {
+        setError(data.error || 'Login failed — please try again.')
+        setLoading(false)
+        return
+      }
+      window.location.replace('/dashboard')
+    } catch {
+      setError('Network error — please try again.')
+      setLoading(false)
+    }
   }
 
   // Expose for QA automation
