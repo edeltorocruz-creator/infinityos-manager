@@ -4,95 +4,83 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { TAX_RATE, DEPOSIT_RATE, formatCurrency, generateQuoteNumber } from '@/lib/quote-engine'
-import { ArrowLeft, Save, Search, CheckCircle, ChevronRight, Ruler, Car } from 'lucide-react'
+import {
+  TAX_RATE, DEPOSIT_RATE, formatCurrency, generateQuoteNumber,
+  calcSqFt, calcFlatSqFt, getIncludesText,
+  MATERIAL_MULTIPLIERS, COMPLEXITY_MULTIPLIERS,
+  MATERIAL_LABELS, COMPLEXITY_LABELS,
+  VEHICLE_BASE_PRICES, VEHICLE_TYPE_LABELS, WRAP_TYPE_LABELS,
+  type SqFtLine, type VehicleLine, type MaterialType, type ComplexityLevel, type WrapType
+} from '@/lib/quote-engine'
+import { ArrowLeft, Save, Search, CheckCircle, Car, Ruler } from 'lucide-react'
 
-// ─── TYPES ────────────────────────────────────────────────────────────────────
+// ─── CONSTANTS ────────────────────────────────────────────────────────────────
+const BASE_SQFT_PRICE = 8.50  // internal — not shown to client
 
-type QuoteMode = null | 'sqft' | 'vehicle'
-
-interface SqFtLine {
-  id: string; label: string; description: string
-  width: number; height: number; sqft: number
-  pricePerSqft: number; material: string; complexity: string; subtotal: number
-}
-
-interface VehicleLine {
-  id: string; vehicleType: string; wrapType: string
-  material: string; colorChange: boolean; printedWrap: boolean
-  chromeDelete: boolean; designIncluded: boolean; complexity: string
-  basePrice: number; addons: number; subtotal: number; notes: string
-}
-
-// ─── PRICING TABLES ───────────────────────────────────────────────────────────
-
-const SQFT_PRICE = 12.50 // default, editable per item
-
-const VEHICLE_BASE_PRICES: Record<string, Record<string, number>> = {
-  sedan:    { full: 2800, partial: 900,  decals: 350 },
-  suv:      { full: 3500, partial: 1200, decals: 400 },
-  truck:    { full: 3800, partial: 1300, decals: 450 },
-  van:      { full: 4500, partial: 1500, decals: 500 },
-  box_truck:{ full: 5500, partial: 2000, decals: 600 },
-  trailer:  { full: 4800, partial: 1800, decals: 550 },
-  food_truck:{ full: 5000, partial: 1900, decals: 580 },
-}
-
-const VEHICLE_LABELS: Record<string, string> = {
-  sedan: 'Sedan / Coupe', suv: 'SUV / Crossover', truck: 'Truck (Crew/Regular)',
-  van: 'Van / Sprinter', box_truck: 'Box Truck', trailer: 'Trailer', food_truck: 'Food Truck',
-}
-
-const WRAP_TYPES: Record<string, string> = {
-  full: 'Full Wrap', partial: 'Partial Wrap', decals: 'Decals / Lettering',
-}
-
-const MATERIALS: Record<string, string> = {
-  gf: 'General Formulations', avery: 'Avery Dennison', '3m': '3M Series', premium: 'Premium / Specialty',
-}
-
-const MATERIAL_MULT: Record<string, number> = { gf: 1.0, avery: 1.10, '3m': 1.20, premium: 1.35 }
-
-const COMPLEXITY_MULT: Record<string, number> = { simple: 1.0, medium: 1.20, complex: 1.45 }
-const COMPLEXITY_LABELS: Record<string, string> = {
-  simple: 'Simple — flat, no obstacles',
-  medium: 'Medium — curves, mild obstructions',
-  complex: 'Complex — rivets, recesses, heavy cuts',
-}
-
-const SQFT_SERVICES = [
+const SQFT_SERVICES_L = [
+  { id: 'food_truck', label: 'Food Truck Wrap' },
+  { id: 'trailer',    label: 'Trailer Wrap' },
+  { id: 'box_truck',  label: 'Box Truck Wrap' },
+]
+const SQFT_SERVICES_WH = [
   { id: 'wall_mural',      label: 'Wall Mural' },
   { id: 'window_graphics', label: 'Window Graphics' },
   { id: 'storefront',      label: 'Storefront Graphics' },
   { id: 'banner',          label: 'Banner / Sign' },
   { id: 'floor_graphics',  label: 'Floor Graphics' },
   { id: 'perforated',      label: 'Perforated Vinyl' },
-  { id: 'custom',          label: 'Custom Flat Surface' },
 ]
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
-
-function calcSqFtLine(line: SqFtLine): number {
-  const sqft = line.width * line.height
-  return Math.round(sqft * line.pricePerSqft * COMPLEXITY_MULT[line.complexity] * 100) / 100
+function buildSqFtLine(id: string, label: string, mode: 'L' | 'WH'): SqFtLine {
+  const isPrinted = true
+  return {
+    id, mode, label, description: '',
+    sqft: 0, pricePerSqft: BASE_SQFT_PRICE,
+    material: 'avery', complexity: 'simple',
+    isPrinted, hasDesign: true, hasLamination: isPrinted,
+    subtotal: 0,
+    includesText: getIncludesText({ isPrinted, hasDesign: true, hasLamination: true, hasChromeDelete: false, hasColorChange: false }),
+  }
 }
 
-function calcVehicleLine(line: VehicleLine): number {
-  const base = VEHICLE_BASE_PRICES[line.vehicleType]?.[line.wrapType] ?? 0
+function recalcSqFtLine(l: SqFtLine): SqFtLine {
+  const sqft = l.mode === 'L'
+    ? calcSqFt(l.L ?? 0)
+    : calcFlatSqFt(l.W ?? 0, l.H ?? 0)
+  const mat  = MATERIAL_MULTIPLIERS[l.material] ?? 1
+  const comp = COMPLEXITY_MULTIPLIERS[l.complexity] ?? 1
+  const lam  = l.hasLamination ? 1.15 : 1
+  const des  = l.hasDesign ? 1.08 : 1
+  const subtotal = Math.round(sqft * l.pricePerSqft * mat * comp * lam * des * 100) / 100
+  const includesText = getIncludesText({
+    isPrinted: l.isPrinted, hasDesign: l.hasDesign,
+    hasLamination: l.hasLamination, hasChromeDelete: false, hasColorChange: false,
+  })
+  return { ...l, sqft, subtotal, includesText }
+}
+
+function recalcVehicleLine(l: VehicleLine): VehicleLine {
+  const base = VEHICLE_BASE_PRICES[l.vehicleType]?.[l.wrapType] ?? 0
+  const mat  = MATERIAL_MULTIPLIERS[l.material] ?? 1
+  const comp = COMPLEXITY_MULTIPLIERS[l.complexity] ?? 1
   let addons = 0
-  if (line.colorChange)    addons += 500
-  if (line.printedWrap)    addons += 300
-  if (line.chromeDelete)   addons += 300
-  if (line.designIncluded) addons += 250
-  const mat  = MATERIAL_MULT[line.material] ?? 1.0
-  const comp = COMPLEXITY_MULT[line.complexity] ?? 1.0
-  return Math.round(((base * mat * comp) + addons) * 100) / 100
+  if (l.colorChange)  addons += 500
+  if (l.printedWrap)  addons += 300
+  if (l.chromeDelete) addons += 300
+  if (l.hasDesign)    addons += 250
+  const subtotal = Math.round((base * mat * comp) + addons * 100) / 100
+  const includesText = getIncludesText({
+    isPrinted: l.printedWrap, hasDesign: l.hasDesign,
+    hasLamination: l.printedWrap, hasChromeDelete: l.chromeDelete,
+    hasColorChange: l.colorChange,
+  })
+  return { ...l, subtotal, includesText }
 }
 
 function calcTotals(sqftLines: SqFtLine[], vehicleLines: VehicleLine[]) {
-  const sub  = [...sqftLines.map(l => l.subtotal), ...vehicleLines.map(l => l.subtotal)]
-    .reduce((a, b) => a + b, 0)
-  const subtotal = Math.round(sub * 100) / 100
+  const all = [...sqftLines.map(l => l.subtotal), ...vehicleLines.map(l => l.subtotal)]
+  const subtotal = Math.round(all.reduce((a, b) => a + b, 0) * 100) / 100
   const tax      = Math.round(subtotal * TAX_RATE * 100) / 100
   const total    = Math.round((subtotal + tax) * 100) / 100
   const deposit  = Math.round(total * DEPOSIT_RATE * 100) / 100
@@ -100,132 +88,175 @@ function calcTotals(sqftLines: SqFtLine[], vehicleLines: VehicleLine[]) {
   return { subtotal, tax, total, deposit, balance }
 }
 
+// ─── STYLES ───────────────────────────────────────────────────────────────────
 const inp = "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-orange-400"
 const sel = "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-orange-400"
 
-// ─── SQFT LINE COMPONENT ──────────────────────────────────────────────────────
-
-function SqFtLineCard({ line, onChange, onRemove }: {
+// ─── SQ FT CARD ───────────────────────────────────────────────────────────────
+function SqFtCard({ line, onChange, onRemove }: {
   line: SqFtLine
-  onChange: (id: string, updates: Partial<SqFtLine>) => void
+  onChange: (id: string, u: Partial<SqFtLine>) => void
   onRemove: (id: string) => void
 }) {
-  const sqft = Math.round(line.width * line.height * 100) / 100
-  const sub  = Math.round(sqft * line.pricePerSqft * COMPLEXITY_MULT[line.complexity] * 100) / 100
+  function upd(u: Partial<SqFtLine>) { onChange(line.id, u) }
 
   return (
-    <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3">
-      <div className="flex justify-between items-center">
-        <input value={line.label} onChange={e => onChange(line.id, { label: e.target.value })}
-          className="font-semibold text-gray-800 bg-transparent border-b border-dashed border-gray-300 focus:outline-none focus:border-orange-400 text-sm w-48" />
+    <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-4">
+      <div className="flex justify-between items-start">
+        <div>
+          <p className="font-bold text-gray-800">{line.label}</p>
+          <p className="text-xs text-gray-400 mt-0.5">{line.includesText}</p>
+        </div>
         <div className="flex items-center gap-3">
-          <span className="text-base font-bold text-orange-600">{formatCurrency(sub)}</span>
-          <button onClick={() => onRemove(line.id)} className="text-xs text-red-400 hover:text-red-600">✕ Remove</button>
+          <span className="text-xl font-bold text-orange-600">{formatCurrency(line.subtotal)}</span>
+          <button onClick={() => onRemove(line.id)} className="text-xs text-red-400 hover:text-red-600">✕</button>
         </div>
       </div>
+
       <div className="grid grid-cols-2 gap-3">
-        <div>
-          <p className="text-xs text-gray-400 mb-1">Width (ft)</p>
-          <input type="number" value={line.width} min={0.5} step={0.5}
-            onChange={e => onChange(line.id, { width: parseFloat(e.target.value) || 0 })} className={inp} />
-        </div>
-        <div>
-          <p className="text-xs text-gray-400 mb-1">Height (ft)</p>
-          <input type="number" value={line.height} min={0.5} step={0.5}
-            onChange={e => onChange(line.id, { height: parseFloat(e.target.value) || 0 })} className={inp} />
-        </div>
-        <div>
-          <p className="text-xs text-gray-400 mb-1">Sq Ft</p>
-          <div className="w-full border border-gray-100 rounded-lg px-3 py-2 text-sm bg-gray-100 text-gray-600 font-medium">
-            {sqft} sq ft
-          </div>
-        </div>
-        <div>
-          <p className="text-xs text-gray-400 mb-1">Price / Sq Ft</p>
-          <input type="number" value={line.pricePerSqft} min={1} step={0.25}
-            onChange={e => onChange(line.id, { pricePerSqft: parseFloat(e.target.value) || 12.50 })} className={inp} />
-        </div>
+        {line.mode === 'L' ? (
+          <>
+            <div>
+              <p className="text-xs text-gray-400 mb-1">Length (ft)</p>
+              <input type="number" value={line.L ?? ''} min={1} step={0.5} placeholder="e.g. 18"
+                onChange={e => upd({ L: parseFloat(e.target.value) || 0 })} className={inp} />
+            </div>
+            <div>
+              <p className="text-xs text-gray-400 mb-1">Sq Ft (auto)</p>
+              <div className="w-full border border-gray-100 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-600 font-semibold">
+                {line.sqft} sq ft
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <div>
+              <p className="text-xs text-gray-400 mb-1">Width (ft)</p>
+              <input type="number" value={line.W ?? ''} min={0.5} step={0.5}
+                onChange={e => upd({ W: parseFloat(e.target.value) || 0 })} className={inp} />
+            </div>
+            <div>
+              <p className="text-xs text-gray-400 mb-1">Height (ft)</p>
+              <input type="number" value={line.H ?? ''} min={0.5} step={0.5}
+                onChange={e => upd({ H: parseFloat(e.target.value) || 0 })} className={inp} />
+            </div>
+            <div className="col-span-2">
+              <p className="text-xs text-gray-400 mb-1">Sq Ft (auto)</p>
+              <div className="w-full border border-gray-100 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-600 font-semibold">
+                {line.sqft} sq ft
+              </div>
+            </div>
+          </>
+        )}
+
         <div>
           <p className="text-xs text-gray-400 mb-1">Material</p>
-          <select value={line.material} onChange={e => onChange(line.id, { material: e.target.value })} className={sel}>
-            {Object.entries(MATERIALS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          <select value={line.material} onChange={e => upd({ material: e.target.value as MaterialType })} className={sel}>
+            {Object.entries(MATERIAL_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
         </div>
         <div>
           <p className="text-xs text-gray-400 mb-1">Complexity</p>
-          <select value={line.complexity} onChange={e => onChange(line.id, { complexity: e.target.value })} className={sel}>
+          <select value={line.complexity} onChange={e => upd({ complexity: e.target.value as ComplexityLevel })} className={sel}>
             {Object.entries(COMPLEXITY_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
         </div>
       </div>
+
+      {/* Options */}
       <div>
-        <p className="text-xs text-gray-400 mb-1">Description / Notes</p>
-        <input value={line.description} onChange={e => onChange(line.id, { description: e.target.value })}
-          placeholder="Location, colors, special instructions..." className={inp} />
+        <p className="text-xs text-gray-400 mb-2">Job includes:</p>
+        <div className="flex flex-wrap gap-2">
+          {[
+            { key: 'isPrinted',    label: 'Full Color Print' },
+            { key: 'hasLamination', label: 'Lamination' },
+            { key: 'hasDesign',    label: 'Custom Design' },
+          ].map(({ key, label }) => (
+            <button key={key}
+              onClick={() => upd({ [key]: !line[key as keyof SqFtLine] } as any)}
+              className={`text-xs px-3 py-1.5 rounded-lg border transition-all ${
+                line[key as keyof SqFtLine]
+                  ? 'border-orange-400 bg-orange-50 text-orange-700 font-semibold'
+                  : 'border-gray-200 text-gray-400 hover:border-orange-300'
+              }`}>
+              {line[key as keyof SqFtLine] ? '✓ ' : '+ '}{label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <p className="text-xs text-gray-400 mb-1">Description (shown on quote)</p>
+        <input value={line.description}
+          onChange={e => upd({ description: e.target.value })}
+          placeholder="e.g. 18ft food truck, full color print, white base..."
+          className={inp} />
       </div>
     </div>
   )
 }
 
-// ─── VEHICLE LINE COMPONENT ───────────────────────────────────────────────────
-
-function VehicleLineCard({ line, onChange, onRemove }: {
+// ─── VEHICLE CARD ─────────────────────────────────────────────────────────────
+function VehicleCard({ line, onChange, onRemove }: {
   line: VehicleLine
-  onChange: (id: string, updates: Partial<VehicleLine>) => void
+  onChange: (id: string, u: Partial<VehicleLine>) => void
   onRemove: (id: string) => void
 }) {
-  const sub = calcVehicleLine(line)
+  function upd(u: Partial<VehicleLine>) { onChange(line.id, u) }
 
   return (
-    <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3">
-      <div className="flex justify-between items-center">
-        <span className="font-semibold text-gray-800 text-sm">
-          {VEHICLE_LABELS[line.vehicleType] || 'Vehicle'} — {WRAP_TYPES[line.wrapType] || 'Wrap'}
-        </span>
+    <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-4">
+      <div className="flex justify-between items-start">
+        <div>
+          <p className="font-bold text-gray-800">
+            {VEHICLE_TYPE_LABELS[line.vehicleType]} — {WRAP_TYPE_LABELS[line.wrapType]}
+          </p>
+          <p className="text-xs text-gray-400 mt-0.5">{line.includesText}</p>
+        </div>
         <div className="flex items-center gap-3">
-          <span className="text-base font-bold text-orange-600">{formatCurrency(sub)}</span>
-          <button onClick={() => onRemove(line.id)} className="text-xs text-red-400 hover:text-red-600">✕ Remove</button>
+          <span className="text-xl font-bold text-orange-600">{formatCurrency(line.subtotal)}</span>
+          <button onClick={() => onRemove(line.id)} className="text-xs text-red-400 hover:text-red-600">✕</button>
         </div>
       </div>
+
       <div className="grid grid-cols-2 gap-3">
         <div>
           <p className="text-xs text-gray-400 mb-1">Vehicle Type</p>
-          <select value={line.vehicleType} onChange={e => onChange(line.id, { vehicleType: e.target.value })} className={sel}>
-            {Object.entries(VEHICLE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          <select value={line.vehicleType} onChange={e => upd({ vehicleType: e.target.value })} className={sel}>
+            {Object.entries(VEHICLE_TYPE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
         </div>
         <div>
           <p className="text-xs text-gray-400 mb-1">Wrap Type</p>
-          <select value={line.wrapType} onChange={e => onChange(line.id, { wrapType: e.target.value })} className={sel}>
-            {Object.entries(WRAP_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          <select value={line.wrapType} onChange={e => upd({ wrapType: e.target.value as WrapType })} className={sel}>
+            {Object.entries(WRAP_TYPE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
         </div>
         <div>
           <p className="text-xs text-gray-400 mb-1">Material</p>
-          <select value={line.material} onChange={e => onChange(line.id, { material: e.target.value })} className={sel}>
-            {Object.entries(MATERIALS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          <select value={line.material} onChange={e => upd({ material: e.target.value as MaterialType })} className={sel}>
+            {Object.entries(MATERIAL_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
         </div>
         <div>
           <p className="text-xs text-gray-400 mb-1">Complexity</p>
-          <select value={line.complexity} onChange={e => onChange(line.id, { complexity: e.target.value })} className={sel}>
+          <select value={line.complexity} onChange={e => upd({ complexity: e.target.value as ComplexityLevel })} className={sel}>
             {Object.entries(COMPLEXITY_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
         </div>
       </div>
 
-      {/* Add-ons */}
       <div>
-        <p className="text-xs text-gray-400 mb-2">Add-ons</p>
+        <p className="text-xs text-gray-400 mb-2">Add-ons:</p>
         <div className="flex flex-wrap gap-2">
           {[
-            { key: 'colorChange',    label: 'Color Change Film +$500' },
-            { key: 'printedWrap',    label: 'Printed Wrap +$300' },
-            { key: 'chromeDelete',   label: 'Chrome Delete +$300' },
-            { key: 'designIncluded', label: 'Design Fee +$250' },
+            { key: 'colorChange',  label: 'Color Change Film' },
+            { key: 'printedWrap',  label: 'Printed Wrap' },
+            { key: 'chromeDelete', label: 'Chrome Delete' },
+            { key: 'hasDesign',    label: 'Custom Design' },
           ].map(({ key, label }) => (
             <button key={key}
-              onClick={() => onChange(line.id, { [key]: !line[key as keyof VehicleLine] } as any)}
+              onClick={() => upd({ [key]: !line[key as keyof VehicleLine] } as any)}
               className={`text-xs px-3 py-1.5 rounded-lg border transition-all ${
                 line[key as keyof VehicleLine]
                   ? 'border-orange-400 bg-orange-50 text-orange-700 font-semibold'
@@ -239,15 +270,15 @@ function VehicleLineCard({ line, onChange, onRemove }: {
 
       <div>
         <p className="text-xs text-gray-400 mb-1">Year / Make / Model / Notes</p>
-        <input value={line.notes} onChange={e => onChange(line.id, { notes: e.target.value })}
-          placeholder="e.g. 2022 Ford F-150 white, customer provides design..." className={inp} />
+        <input value={line.notes} onChange={e => upd({ notes: e.target.value })}
+          placeholder="e.g. 2022 Ford F-150, white base, customer provides design..."
+          className={inp} />
       </div>
     </div>
   )
 }
 
 // ─── MAIN FORM ────────────────────────────────────────────────────────────────
-
 function QuoteForm() {
   const router = useRouter()
   const params = useSearchParams()
@@ -256,16 +287,18 @@ function QuoteForm() {
   const notesRef      = useRef('')
   const [clients,      setClients]      = useState<any[]>([])
   const [clientSearch, setClientSearch] = useState('')
-  const [mode,         setMode]         = useState<QuoteMode>(null)
+  const [mode,         setMode]         = useState<null | 'sqft' | 'vehicle'>(null)
   const [sqftLines,    setSqftLines]    = useState<SqFtLine[]>([])
   const [vehicleLines, setVehicleLines] = useState<VehicleLine[]>([])
   const [saving,       setSaving]       = useState(false)
   const [error,        setError]        = useState('')
 
-  const totals = calcTotals(sqftLines, vehicleLines)
+  const totals   = calcTotals(sqftLines, vehicleLines)
+  const hasLines = sqftLines.length + vehicleLines.length > 0
 
   const filteredClients = clients.filter(c =>
-    !clientSearch || c.name.toLowerCase().includes(clientSearch.toLowerCase()) ||
+    !clientSearch ||
+    c.name.toLowerCase().includes(clientSearch.toLowerCase()) ||
     (c.company || '').toLowerCase().includes(clientSearch.toLowerCase())
   )
 
@@ -273,52 +306,39 @@ function QuoteForm() {
     supabase.from('clients').select('id,name,company,phone').order('name').then(({ data }) => {
       if (!data) return
       setClients(data)
-      const urlClientId = params.get('clientId')
-      if (urlClientId) {
-        const c = data.find((c: any) => c.id === urlClientId)
+      const uid = params.get('clientId')
+      if (uid) {
+        const c = data.find((x: any) => x.id === uid)
         if (c) { clientIdRef.current = c.id; setClientSearch(c.name + (c.company ? ` (${c.company})` : '')) }
       }
     })
   }, [])
 
   // ── Sq Ft handlers ──
-  function addSqFtLine(serviceId: string, label: string) {
-    setSqftLines(p => [...p, {
-      id: crypto.randomUUID(), label, description: '',
-      width: 0, height: 0, sqft: 0,
-      pricePerSqft: SQFT_PRICE, material: 'gf', complexity: 'simple', subtotal: 0
-    }])
+  function addSqFtLine(id: string, label: string, mode: 'L' | 'WH') {
+    const line = buildSqFtLine(crypto.randomUUID(), label, mode)
+    setSqftLines(p => [...p, line])
   }
 
   function updateSqFtLine(id: string, updates: Partial<SqFtLine>) {
-    setSqftLines(p => p.map(l => {
-      if (l.id !== id) return l
-      const u = { ...l, ...updates }
-      u.sqft    = Math.round(u.width * u.height * 100) / 100
-      u.subtotal = Math.round(u.sqft * u.pricePerSqft * COMPLEXITY_MULT[u.complexity] * 100) / 100
-      return u
-    }))
+    setSqftLines(p => p.map(l => l.id === id ? recalcSqFtLine({ ...l, ...updates }) : l))
   }
 
   function removeSqFtLine(id: string) { setSqftLines(p => p.filter(l => l.id !== id)) }
 
   // ── Vehicle handlers ──
   function addVehicleLine() {
-    setVehicleLines(p => [...p, {
+    const base: VehicleLine = {
       id: crypto.randomUUID(), vehicleType: 'sedan', wrapType: 'full',
-      material: 'gf', colorChange: false, printedWrap: false,
-      chromeDelete: false, designIncluded: false, complexity: 'simple',
-      basePrice: 2800, addons: 0, subtotal: 2800, notes: ''
-    }])
+      material: 'gf', complexity: 'simple',
+      colorChange: false, printedWrap: false, chromeDelete: false, hasDesign: false,
+      subtotal: 0, notes: '', includesText: '',
+    }
+    setVehicleLines(p => [...p, recalcVehicleLine(base)])
   }
 
   function updateVehicleLine(id: string, updates: Partial<VehicleLine>) {
-    setVehicleLines(p => p.map(l => {
-      if (l.id !== id) return l
-      const u = { ...l, ...updates }
-      u.subtotal = calcVehicleLine(u)
-      return u
-    }))
+    setVehicleLines(p => p.map(l => l.id === id ? recalcVehicleLine({ ...l, ...updates }) : l))
   }
 
   function removeVehicleLine(id: string) { setVehicleLines(p => p.filter(l => l.id !== id)) }
@@ -326,29 +346,16 @@ function QuoteForm() {
   // ── Save ──
   async function saveQuote(status: 'draft' | 'sent') {
     const cid = clientIdRef.current
-    if (!cid) { setError('Select a client first'); return }
-    const totalLines = sqftLines.length + vehicleLines.length
-    if (totalLines === 0) { setError('Add at least one service line'); return }
+    if (!cid)        { setError('Select a client first'); return }
+    if (!hasLines)   { setError('Add at least one service line'); return }
     setSaving(true); setError('')
 
-    const qNum    = generateQuoteNumber()
+    const qNum    = await generateQuoteNumber()
     const expires = new Date(Date.now() + 30 * 86400000).toISOString()
 
-    // Build unified items array for storage
     const items = [
-      ...sqftLines.map(l => ({
-        type: 'sqft', id: l.id, label: l.label, description: l.description,
-        width: l.width, height: l.height, sqft: l.sqft,
-        pricePerSqft: l.pricePerSqft, material: l.material,
-        complexity: l.complexity, subtotal: l.subtotal,
-      })),
-      ...vehicleLines.map(l => ({
-        type: 'vehicle', id: l.id, vehicleType: l.vehicleType, wrapType: l.wrapType,
-        material: l.material, complexity: l.complexity,
-        colorChange: l.colorChange, printedWrap: l.printedWrap,
-        chromeDelete: l.chromeDelete, designIncluded: l.designIncluded,
-        subtotal: l.subtotal, notes: l.notes,
-      })),
+      ...sqftLines.map(l => ({ type: 'sqft', ...l })),
+      ...vehicleLines.map(l => ({ type: 'vehicle', ...l })),
     ]
 
     const { data, error: err } = await supabase.from('quotes').insert({
@@ -364,8 +371,6 @@ function QuoteForm() {
     if (err) { setError(err.message); setSaving(false); return }
     router.push(`/quotes/${data.id}`)
   }
-
-  const hasLines = sqftLines.length + vehicleLines.length > 0
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -393,7 +398,7 @@ function QuoteForm() {
 
       <div className="max-w-5xl mx-auto p-6 grid grid-cols-3 gap-5">
 
-        {/* LEFT — Client + Totals */}
+        {/* LEFT */}
         <div className="col-span-1 space-y-4">
 
           {/* Client */}
@@ -401,12 +406,9 @@ function QuoteForm() {
             <h2 className="text-sm font-semibold text-gray-700 mb-3">Client</h2>
             <div className="relative">
               <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-gray-400" />
-              <input
-                className="w-full border border-gray-200 rounded-lg pl-8 pr-3 py-2 text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-orange-400"
-                placeholder="Search client..."
-                value={clientSearch}
-                onChange={e => { setClientSearch(e.target.value); clientIdRef.current = '' }}
-              />
+              <input className="w-full border border-gray-200 rounded-lg pl-8 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+                placeholder="Search client..." value={clientSearch}
+                onChange={e => { setClientSearch(e.target.value); clientIdRef.current = '' }} />
             </div>
             {clientSearch && !clientIdRef.current && filteredClients.length > 0 && (
               <div className="mt-1 border border-gray-200 rounded-lg bg-white shadow-sm max-h-40 overflow-y-auto">
@@ -442,7 +444,7 @@ function QuoteForm() {
           {/* Totals */}
           {hasLines && (
             <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-2">
-              <h2 className="text-sm font-semibold text-gray-700 mb-3">Summary</h2>
+              <h2 className="text-sm font-semibold text-gray-700 mb-1">Summary</h2>
               <div className="flex justify-between text-sm text-gray-500">
                 <span>Subtotal</span><span>{formatCurrency(totals.subtotal)}</span>
               </div>
@@ -466,66 +468,54 @@ function QuoteForm() {
           )}
         </div>
 
-        {/* RIGHT — Quote Builder */}
+        {/* RIGHT */}
         <div className="col-span-2 space-y-4">
 
-          {/* Mode Selector */}
-          {mode === null && (
+          {/* Mode selector */}
+          {mode === null ? (
             <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h2 className="text-sm font-semibold text-gray-700 mb-1">What type of job is this?</h2>
-              <p className="text-xs text-gray-400 mb-5">Select the pricing engine for this quote</p>
+              <h2 className="text-sm font-semibold text-gray-700 mb-1">What type of job?</h2>
+              <p className="text-xs text-gray-400 mb-5">Choose the pricing engine for this quote</p>
               <div className="grid grid-cols-2 gap-4">
-                <button onClick={() => setMode('vehicle')}
-                  className="flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-gray-200 hover:border-orange-400 hover:bg-orange-50 transition-all group">
-                  <div className="w-12 h-12 rounded-full bg-orange-100 group-hover:bg-orange-200 flex items-center justify-center transition-all">
-                    <Car className="w-6 h-6 text-orange-500" />
-                  </div>
-                  <div className="text-center">
-                    <p className="font-bold text-gray-800 text-sm">Vehicle Wrap</p>
-                    <p className="text-xs text-gray-400 mt-1">Cars, SUVs, Trucks, Vans</p>
-                    <p className="text-xs text-gray-300 mt-1">Price by vehicle type + options</p>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-orange-400" />
-                </button>
-                <button onClick={() => setMode('sqft')}
-                  className="flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-gray-200 hover:border-orange-400 hover:bg-orange-50 transition-all group">
-                  <div className="w-12 h-12 rounded-full bg-orange-100 group-hover:bg-orange-200 flex items-center justify-center transition-all">
-                    <Ruler className="w-6 h-6 text-orange-500" />
-                  </div>
-                  <div className="text-center">
-                    <p className="font-bold text-gray-800 text-sm">By Square Feet</p>
-                    <p className="text-xs text-gray-400 mt-1">Murals, Windows, Signs, Food Trucks</p>
-                    <p className="text-xs text-gray-300 mt-1">Price by width × height × $/sq ft</p>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-orange-400" />
-                </button>
+                {[
+                  { key: 'vehicle', icon: <Car className="w-6 h-6 text-orange-500" />, title: 'Vehicle Wrap', sub: 'Cars, SUVs, Trucks, Vans', desc: 'Price by vehicle type + options' },
+                  { key: 'sqft',    icon: <Ruler className="w-6 h-6 text-orange-500" />, title: 'By Square Feet', sub: 'Murals, Food Trucks, Signs', desc: 'Price by dimensions × $/sq ft' },
+                ].map(({ key, icon, title, sub, desc }) => (
+                  <button key={key} onClick={() => setMode(key as any)}
+                    className="flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-gray-200 hover:border-orange-400 hover:bg-orange-50 transition-all group">
+                    <div className="w-12 h-12 rounded-full bg-orange-100 group-hover:bg-orange-200 flex items-center justify-center">
+                      {icon}
+                    </div>
+                    <div className="text-center">
+                      <p className="font-bold text-gray-800 text-sm">{title}</p>
+                      <p className="text-xs text-gray-400 mt-1">{sub}</p>
+                      <p className="text-xs text-gray-300 mt-1">{desc}</p>
+                    </div>
+                  </button>
+                ))}
               </div>
             </div>
-          )}
-
-          {/* Both buttons always visible once mode is selected */}
-          {mode !== null && (
+          ) : (
             <div className="flex gap-3">
-              <button onClick={() => setMode('vehicle')}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border-2 text-sm font-semibold transition-all ${
-                  mode === 'vehicle' ? 'border-orange-400 bg-orange-50 text-orange-700' : 'border-gray-200 text-gray-400 hover:border-orange-300'
-                }`}>
-                <Car className="w-4 h-4" /> Vehicle Quote
-              </button>
-              <button onClick={() => setMode('sqft')}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border-2 text-sm font-semibold transition-all ${
-                  mode === 'sqft' ? 'border-orange-400 bg-orange-50 text-orange-700' : 'border-gray-200 text-gray-400 hover:border-orange-300'
-                }`}>
-                <Ruler className="w-4 h-4" /> Sq Ft Quote
-              </button>
+              {[
+                { key: 'vehicle', icon: <Car className="w-4 h-4" />, label: 'Vehicle Quote' },
+                { key: 'sqft',    icon: <Ruler className="w-4 h-4" />, label: 'Sq Ft Quote' },
+              ].map(({ key, icon, label }) => (
+                <button key={key} onClick={() => setMode(key as any)}
+                  className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border-2 text-sm font-semibold transition-all ${
+                    mode === key ? 'border-orange-400 bg-orange-50 text-orange-700' : 'border-gray-200 text-gray-400 hover:border-orange-300'
+                  }`}>
+                  {icon} {label}
+                </button>
+              ))}
             </div>
           )}
 
-          {/* VEHICLE MODE */}
+          {/* Vehicle lines */}
           {mode === 'vehicle' && (
             <div className="space-y-3">
-              {vehicleLines.map(line => (
-                <VehicleLineCard key={line.id} line={line} onChange={updateVehicleLine} onRemove={removeVehicleLine} />
+              {vehicleLines.map(l => (
+                <VehicleCard key={l.id} line={l} onChange={updateVehicleLine} onRemove={removeVehicleLine} />
               ))}
               <button onClick={addVehicleLine}
                 className="w-full py-3 rounded-xl border-2 border-dashed border-gray-200 text-sm text-gray-400 hover:border-orange-400 hover:text-orange-500 transition-all font-medium">
@@ -534,32 +524,45 @@ function QuoteForm() {
             </div>
           )}
 
-          {/* SQFT MODE */}
+          {/* Sq Ft lines */}
           {mode === 'sqft' && (
             <div className="space-y-3">
-              {sqftLines.map(line => (
-                <SqFtLineCard key={line.id} line={line} onChange={updateSqFtLine} onRemove={removeSqFtLine} />
+              {sqftLines.map(l => (
+                <SqFtCard key={l.id} line={l} onChange={updateSqFtLine} onRemove={removeSqFtLine} />
               ))}
-              <div className="bg-white rounded-xl border border-gray-200 p-4">
-                <p className="text-xs font-semibold text-gray-500 mb-3">Add a surface:</p>
-                <div className="flex flex-wrap gap-2">
-                  {SQFT_SERVICES.map(svc => (
-                    <button key={svc.id} onClick={() => addSqFtLine(svc.id, svc.label)}
-                      className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm text-gray-600 hover:border-orange-400 hover:text-orange-600 hover:bg-orange-50 transition-all">
-                      + {svc.label}
-                    </button>
-                  ))}
+              <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+                <div>
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Trucks & Trailers (by Length)</p>
+                  <div className="flex flex-wrap gap-2">
+                    {SQFT_SERVICES_L.map(s => (
+                      <button key={s.id} onClick={() => addSqFtLine(s.id, s.label, 'L')}
+                        className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm text-gray-600 hover:border-orange-400 hover:text-orange-600 hover:bg-orange-50 transition-all">
+                        + {s.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Flat Surfaces (by Width × Height)</p>
+                  <div className="flex flex-wrap gap-2">
+                    {SQFT_SERVICES_WH.map(s => (
+                      <button key={s.id} onClick={() => addSqFtLine(s.id, s.label, 'WH')}
+                        className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm text-gray-600 hover:border-orange-400 hover:text-orange-600 hover:bg-orange-50 transition-all">
+                        + {s.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Mixed mode — show both sections if lines exist */}
-          {hasLines && mode !== null && (
+          {/* Bottom summary bar */}
+          {hasLines && (
             <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 flex justify-between items-center">
               <div>
                 <p className="text-sm font-bold text-orange-800">
-                  {sqftLines.length + vehicleLines.length} line{sqftLines.length + vehicleLines.length !== 1 ? 's' : ''} · Total: {formatCurrency(totals.total)}
+                  {sqftLines.length + vehicleLines.length} line{sqftLines.length + vehicleLines.length !== 1 ? 's' : ''} · {formatCurrency(totals.total)}
                 </p>
                 <p className="text-xs text-orange-600">Deposit: {formatCurrency(totals.deposit)} · Balance: {formatCurrency(totals.balance)}</p>
               </div>
