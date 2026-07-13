@@ -1,5 +1,4 @@
 // Re-export all types for backward compatibility
-export type { QuoteLineItem, PricingRule } from '@/lib/quote-engine'
 
 export interface Client {
   id: string
