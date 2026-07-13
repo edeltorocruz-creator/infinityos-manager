@@ -1,7 +1,7 @@
 'use client'
 export const dynamic = 'force-dynamic'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 export default function LoginPage() {
   const [email,    setEmail]    = useState('edeltorocruz@gmail.com')
@@ -9,9 +9,14 @@ export default function LoginPage() {
   const [loading,  setLoading]  = useState(false)
   const [error,    setError]    = useState('')
 
+  const emailRef    = useRef<HTMLInputElement>(null)
+  const passwordRef = useRef<HTMLInputElement>(null)
+
   async function doLogin(pwdOverride?: string) {
-    const e = email.trim()
-    const p = (pwdOverride || password).trim()
+    // Read directly from the DOM first — Chrome autofill fills the input
+    // without firing React onChange, so state can be stale/empty.
+    const e = (emailRef.current?.value ?? email).trim()
+    const p = (pwdOverride ?? passwordRef.current?.value ?? password).trim()
     if (!e || !p) { setError('Enter your email and password'); return }
     setLoading(true); setError('')
     try {
@@ -54,13 +59,13 @@ export default function LoginPage() {
         </div>
         <div style={{ marginBottom: '20px' }}>
           <label style={{ color: '#9ca3af', fontSize: '13px', fontWeight: 500, display: 'block', marginBottom: '8px' }}>Email</label>
-          <input type="email" autoComplete="username" value={email} onChange={e => setEmail(e.target.value)}
+          <input ref={emailRef} type="email" autoComplete="username" value={email} onChange={e => setEmail(e.target.value)}
             onKeyDown={e => e.key==='Enter' && doLogin()} style={inp}
             onFocus={e => e.target.style.borderColor='#ff6b00'} onBlur={e => e.target.style.borderColor='#1e2235'} />
         </div>
         <div style={{ marginBottom: '28px' }}>
           <label style={{ color: '#9ca3af', fontSize: '13px', fontWeight: 500, display: 'block', marginBottom: '8px' }}>Password</label>
-          <input type="password" autoComplete="current-password" placeholder="••••••••"
+          <input ref={passwordRef} type="password" autoComplete="current-password" placeholder="••••••••"
             value={password} onChange={e => setPassword(e.target.value)}
             onKeyDown={e => e.key==='Enter' && doLogin()} style={inp}
             onFocus={e => e.target.style.borderColor='#ff6b00'} onBlur={e => e.target.style.borderColor='#1e2235'} />
