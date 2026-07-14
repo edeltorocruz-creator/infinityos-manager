@@ -2,30 +2,25 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
 const NAV_ITEMS = [
-  { href: '/dashboard',        label: 'Dashboard' },
-  { href: '/followup',         label: '🔥 Follow-up',    badge: 'HOT' },
-  { href: '/prospects',        label: '🎯 Prospects',    badge: 'NEW' },
-  { href: '/leads',            label: 'Leads' },
-  { href: '/quotes',           label: 'Quotes' },
-  { href: '/invoices',         label: 'Invoices' },
-  { href: '/projects',         label: 'Projects' },
-  { href: '/expenses',         label: 'Expenses' },
-  { href: '/clients',          label: 'Clients' },
-  { href: '/reports',          label: 'Reports' },
+  { href: '/dashboard', label: 'Dashboard' },
+  { href: '/quotes',    label: 'Quotes' },
+  { href: '/invoices',  label: 'Invoices' },
+  { href: '/clients',   label: 'Clientes' },
+  { href: '/expenses',  label: 'Gastos' },
+  { href: '/calendar',  label: '📅 Calendario' },
+  { href: '/summary',   label: '📊 Resumen' },
 ]
 
 const ADMIN_ITEMS = [
-  { href: '/admin/pricing',    label: 'Pricing Rules' },
-  { href: '/admin/settings',   label: '⚙️ Business Setup' },
+  { href: '/admin/settings', label: '⚙️ Business Setup' },
 ]
 
 export default function NavSidebar() {
-  const pathname    = usePathname()
-  const router      = useRouter()
+  const pathname = usePathname()
   const [bizName, setBizName] = useState('Infinity Wrap Design')
 
   useEffect(() => {
@@ -60,11 +55,6 @@ export default function NavSidebar() {
         {NAV_ITEMS.map(item => (
           <Link key={item.href} href={item.href} className={linkClass(item.href)}>
             <span>{item.label}</span>
-            {item.badge && !isActive(item.href) && (
-              <span className={`text-white text-xs px-1.5 py-0.5 rounded-full font-bold ${
-                item.badge === 'HOT' ? 'bg-red-500 animate-pulse' : 'bg-orange-500'
-              }`}>{item.badge}</span>
-            )}
           </Link>
         ))}
 
