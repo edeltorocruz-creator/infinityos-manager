@@ -36,6 +36,7 @@ export function calcSqFt(L: number, H: number = FIXED_HEIGHT): number {
 }
 
 export function calcQuoteLine(vehicle: VehicleKind, job: JobKind, L: number) {
+  if (!L || L <= 0) return { sqft: 0, subtotal: 0 }
   const sqft  = calcSqFt(L)
   const rate  = job === 'wrap' ? WRAP_RATE : STICKER_RATE
   const base  = sqft * rate
