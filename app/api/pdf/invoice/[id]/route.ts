@@ -41,13 +41,18 @@ export async function GET(req: NextRequest, context: any) {
   if (error || !inv) return NextResponse.json({ error: 'Invoice not found' }, { status: 404 })
 
   const client = inv.client || {}
-  const items  = (inv.items || []).map((i: any) => ({
+  const rawItems = inv.items || []
+  const discountItem = rawItems.find((i: any) => i.type === 'discount')
+  const items  = rawItems.filter((i: any) => i.type !== 'discount').map((i: any) => ({
     label:       i.label       || i.serviceType || 'Service',
     description: i.description || '',
     qty:         i.qty         ?? i.sqft        ?? 1,
     unitPrice:   i.unitPrice   ?? i.price_per_sqft ?? 0,
     subtotal:    i.subtotal    ?? 0,
   }))
+  const discount = discountItem
+    ? { label: discountItem.label || 'Discount', amount: Math.abs(discountItem.subtotal || 0) }
+    : undefined
 
   const isFullyPaid   = inv.status === 'paid'
   const isDepositPaid = inv.status === 'deposit_paid' || isFullyPaid
@@ -64,6 +69,7 @@ export async function GET(req: NextRequest, context: any) {
     total: inv.total || 0, deposit: inv.deposit_amount || 0, balance: inv.balance_due || 0,
     notes: inv.notes || '', isFullyPaid, isDepositPaid,
     paymentMethod: inv.payment_method || '', depositRate: 50,
+    discount,
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

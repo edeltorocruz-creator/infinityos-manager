@@ -133,7 +133,10 @@ export default function InvoiceDetailPage() {
   if (loading) return <div className="flex items-center justify-center h-screen text-gray-400">Loading invoice...</div>
   if (!invoice) return <div className="flex items-center justify-center h-screen text-gray-400">Invoice not found</div>
 
-  const items = invoice.items || []
+  const rawItems = invoice.items || []
+  const discountItem = rawItems.find((i: any) => i.type === 'discount')
+  const items = rawItems.filter((i: any) => i.type !== 'discount')
+  const discountAmount = discountItem ? Math.abs(discountItem.subtotal || 0) : 0
   const isFullyPaid = invoice.status === 'paid'
   const isDepositPaid = invoice.status === 'deposit_paid'
 
@@ -330,6 +333,12 @@ export default function InvoiceDetailPage() {
                 <div className="flex justify-between text-sm py-1.5 border-b border-gray-100">
                   <span className="text-gray-500">Subtotal</span><span className="font-semibold">{formatCurrency(invoice.subtotal)}</span>
                 </div>
+                {discountAmount > 0 && (
+                  <div className="flex justify-between text-sm py-1.5 border-b border-gray-100">
+                    <span className="text-green-600 font-semibold">{discountItem?.label || 'Discount'}</span>
+                    <span className="text-green-600 font-semibold">− {formatCurrency(discountAmount)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-sm py-1.5 border-b border-gray-100">
                   <span className="text-gray-500">Tax (6.75% NC)</span><span className="font-semibold">{formatCurrency(invoice.tax_amount)}</span>
                 </div>

@@ -48,13 +48,27 @@ export async function GET(req: NextRequest, context: any) {
   if (error || !q) return NextResponse.json({ error: 'Quote not found' }, { status: 404 })
 
   const client = q.client || {}
-  const items  = (q.items || []).map((i: any) => ({
+  const rawItems = q.items || []
+  const discountItem = rawItems.find((i: any) => i.type === 'discount')
+  const items  = rawItems.filter((i: any) => i.type !== 'discount').map((i: any) => ({
     label:       i.label       || i.serviceType || 'Service',
     description: i.description || '',
     qty:         i.qty         ?? i.sqft        ?? 1,
     unitPrice:   i.unitPrice   ?? i.price_per_sqft ?? 0,
     subtotal:    i.subtotal    ?? 0,
   }))
+  const discount = discountItem
+    ? { label: discountItem.label || 'Discount', amount: Math.abs(discountItem.subtotal || 0) }
+    : undefined
+
+  const INCLUDED_CONCEPTS = [
+    'Custom design & digital mockup (proof before printing)',
+    'Premium cast vinyl with protective laminate',
+    'High-resolution large-format printing',
+    'Surface preparation & decontamination',
+    'Professional installation by certified installers',
+    'Installation workmanship warranty',
+  ]
 
   const total   = q.total   || 0
   const deposit = Math.round(total * 0.5 * 100) / 100
@@ -69,6 +83,7 @@ export async function GET(req: NextRequest, context: any) {
     items,
     subtotal: q.subtotal || 0, tax: q.tax_amount || 0, taxRate: q.tax_rate || 0.0675,
     total, deposit, balance, notes: q.notes || '', depositRate: 50,
+    discount, includedConcepts: INCLUDED_CONCEPTS,
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

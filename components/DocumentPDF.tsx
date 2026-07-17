@@ -79,6 +79,8 @@ const S = StyleSheet.create({
   totRow:       { flexDirection:'row', justifyContent:'space-between', paddingVertical:4, borderBottom:`1 solid ${C.grayBorder}` },
   totLabel:     { fontSize:8, color:C.gray },
   totVal:       { fontSize:8, fontFamily:'Helvetica-Bold' },
+  discLabel:    { fontSize:8, fontFamily:'Helvetica-Bold', color:C.green },
+  discVal:      { fontSize:8, fontFamily:'Helvetica-Bold', color:C.green },
   totalBar:     { flexDirection:'row', justifyContent:'space-between', backgroundColor:C.black, padding:'9 13', borderRadius:7, marginTop:4 },
   totalLabel:   { fontSize:11, fontFamily:'Helvetica-Bold', color:C.white },
   totalVal:     { fontSize:15, fontFamily:'Helvetica-Bold', color:C.orange },
@@ -89,6 +91,14 @@ const S = StyleSheet.create({
   balLabel:     { fontSize:8, fontFamily:'Helvetica-Bold', color:C.gray },
   balVal:       { fontSize:9, fontFamily:'Helvetica-Bold', color:C.black },
   paidStamp:    { textAlign:'center', fontSize:24, fontFamily:'Helvetica-Bold', color:C.green, letterSpacing:4, marginTop:8 },
+
+  // ── Included Concepts (price justification, NO amounts) ──
+  inclBox:      { margin:'0 36 10', backgroundColor:C.grayLight, border:`1 solid ${C.grayBorder}`, borderRadius:7, padding:'10 14' },
+  inclLabel:    { fontSize:7.5, fontFamily:'Helvetica-Bold', color:C.orangeDeep, textTransform:'uppercase', letterSpacing:1, marginBottom:6 },
+  inclGrid:     { flexDirection:'row', flexWrap:'wrap' },
+  inclItem:     { width:'50%', flexDirection:'row', marginBottom:4, paddingRight:8 },
+  inclCheck:    { fontSize:8, color:C.green, marginRight:5, fontFamily:'Helvetica-Bold' },
+  inclText:     { fontSize:8, color:'#374151', flex:1 },
 
   // ── Notes / Warranty / Terms ──
   sec:          { padding:'0 36 10' },
@@ -165,6 +175,8 @@ export interface DocData {
   isDepositPaid?:boolean
   paymentMethod?:string
   depositRate?:  number
+  discount?:     { label: string; amount: number }
+  includedConcepts?: string[]
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -268,6 +280,12 @@ export default function DocumentPDF({ doc }: { doc: DocData }) {
               <Text style={S.totLabel}>Subtotal</Text>
               <Text style={S.totVal}>{fmt(doc.subtotal)}</Text>
             </View>
+            {doc.discount && doc.discount.amount > 0 && (
+              <View style={S.totRow}>
+                <Text style={S.discLabel}>{doc.discount.label}</Text>
+                <Text style={S.discVal}>-{fmt(doc.discount.amount)}</Text>
+              </View>
+            )}
             <View style={S.totRow}>
               <Text style={S.totLabel}>Tax ({taxPct}% NC)</Text>
               <Text style={S.totVal}>{fmt(doc.tax)}</Text>
@@ -293,6 +311,21 @@ export default function DocumentPDF({ doc }: { doc: DocData }) {
             {doc.isFullyPaid && <Text style={S.paidStamp}>PAID IN FULL</Text>}
           </View>
         </View>
+
+        {/* ── THIS PRICE INCLUDES (justification — concepts only, NO amounts) ── */}
+        {doc.includedConcepts && doc.includedConcepts.length > 0 && (
+          <View style={S.inclBox}>
+            <Text style={S.inclLabel}>This Price Includes</Text>
+            <View style={S.inclGrid}>
+              {doc.includedConcepts.map((c, i) => (
+                <View key={i} style={S.inclItem}>
+                  <Text style={S.inclCheck}>✓</Text>
+                  <Text style={S.inclText}>{c}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
 
         {/* ── NOTES ── */}
         {doc.notes ? (

@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { formatCurrency, WARRANTY_TEXT, TERMS_TEXT } from '@/lib/quote-engine'
+import { formatCurrency, WARRANTY_TEXT, TERMS_TEXT, INCLUDED_CONCEPTS } from '@/lib/quote-engine'
 import { ArrowLeft, Printer, CheckCircle, XCircle, Clock, FileText, Zap, FolderOpen } from 'lucide-react'
 import { useReactToPrint } from 'react-to-print'
 
@@ -59,7 +59,7 @@ export default function QuoteDetailPage() {
     const now = new Date().toISOString()
 
     // Build service summary from items
-    const itemsList = quote.items || []
+    const itemsList = (quote.items || []).filter((i: any) => i.type !== 'discount')
     const serviceSummary = itemsList.map((i: any) => i.label).filter(Boolean).join(', ') || 'Services'
 
     // 1. Create Project
@@ -135,7 +135,10 @@ export default function QuoteDetailPage() {
   if (loading) return <div className="flex items-center justify-center h-64 text-gray-400">Loading quote...</div>
   if (!quote)  return <div className="flex items-center justify-center h-64 text-gray-400">Quote not found</div>
 
-  const items    = quote.items || []
+  const rawItems = quote.items || []
+  const discountItem = rawItems.find((i: any) => i.type === 'discount')
+  const items    = rawItems.filter((i: any) => i.type !== 'discount')
+  const discountAmount = discountItem ? Math.abs(discountItem.subtotal || 0) : 0
   const subtotal = quote.subtotal   || 0
   const tax      = quote.tax_amount || 0
   const total    = quote.total      || 0
@@ -316,6 +319,12 @@ export default function QuoteDetailPage() {
                 <div className="flex justify-between text-sm py-1.5 border-b border-gray-100">
                   <span className="text-gray-500">Subtotal</span><span className="font-semibold">{formatCurrency(subtotal)}</span>
                 </div>
+                {discountAmount > 0 && (
+                  <div className="flex justify-between text-sm py-1.5 border-b border-gray-100">
+                    <span className="text-green-600 font-semibold">{discountItem?.label || 'Discount'}</span>
+                    <span className="text-green-600 font-semibold">− {formatCurrency(discountAmount)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-sm py-1.5 border-b border-gray-100">
                   <span className="text-gray-500">Tax (6.75% NC)</span><span className="font-semibold">{formatCurrency(tax)}</span>
                 </div>
@@ -333,6 +342,20 @@ export default function QuoteDetailPage() {
                     <span className="text-gray-700 font-semibold">{formatCurrency(balance)}</span>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          {/* This Price Includes — justification, concepts only (no amounts) */}
+          <div className="px-8 pb-5">
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+              <p className="text-xs font-bold text-orange-600 uppercase tracking-wide mb-2">This Price Includes</p>
+              <div className="grid grid-cols-2 gap-x-6 gap-y-1.5">
+                {INCLUDED_CONCEPTS.map((c, i) => (
+                  <p key={i} className="text-sm text-gray-700 flex items-start gap-2">
+                    <span className="text-green-600 font-bold shrink-0">✓</span>{c}
+                  </p>
+                ))}
               </div>
             </div>
           </div>

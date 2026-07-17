@@ -5,26 +5,34 @@ import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import {
-  TAX_RATE, formatCurrency, generateQuoteNumber, calcQuoteLine, calcTotals,
-  VEHICLE_LABELS, JOB_LABELS, FIXED_HEIGHT,
-  type SimpleLine, type VehicleKind, type JobKind,
+  TAX_RATE, formatCurrency, generateQuoteNumber, calcLineV2, calcTotals,
+  PROJECT_TYPE_LABELS, PROJECT_TYPE_EMOJI, AUTO_TYPES, JOB_LABELS, FIXED_HEIGHT,
+  WRAP_RATE, STICKER_RATE, extraRate,
+  type SimpleLine, type ProjectType, type JobKind, type PriceMode, type Discount, type DiscountType,
 } from '@/lib/quote-engine'
-import { ArrowLeft, Save, Plus, Send } from 'lucide-react'
+import { ArrowLeft, Save, Plus, Send, Tag } from 'lucide-react'
 
 interface ClientRow { id: string; name: string; phone?: string | null; company?: string | null }
 
 const inp = "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-orange-400"
 
+const MODE_LABELS: Record<PriceMode, string> = {
+  auto:   'Automático',
+  sqft:   'SqFt manual',
+  manual: 'Precio manual',
+}
+
 function newLine(): SimpleLine {
   const base: SimpleLine = {
-    id: crypto.randomUUID(), vehicle: 'truck', job: 'wrap', L: 0,
+    id: crypto.randomUUID(), mode: 'auto', projectType: 'truck', job: 'wrap',
+    L: 0, manualSqft: 0, manualPrice: 0,
     description: '', sqft: 0, subtotal: 0,
   }
   return recalc(base)
 }
 
 function recalc(l: SimpleLine): SimpleLine {
-  const { sqft, subtotal } = calcQuoteLine(l.vehicle, l.job, l.L || 0)
+  const { sqft, subtotal } = calcLineV2(l)
   return { ...l, sqft, subtotal }
 }
 
@@ -43,6 +51,10 @@ export default function NewQuotePage() {
   // ── Lines ──
   const [lines, setLines] = useState<SimpleLine[]>([newLine()])
   const [notes, setNotes] = useState('')
+
+  // ── Discount ──
+  const [discType, setDiscType]   = useState<DiscountType>('none')
+  const [discValue, setDiscValue] = useState<number>(0)
 
   const [saving, setSaving] = useState(false)
   const [error, setError]   = useState('')
@@ -79,29 +91,53 @@ export default function NewQuotePage() {
   }
 
   function updLine(id: string, u: Partial<SimpleLine>) {
-    setLines(p => p.map(l => l.id === id ? recalc({ ...l, ...u }) : l))
+    setLines(p => p.map(l => {
+      if (l.id !== id) return l
+      const merged = { ...l, ...u }
+      // If switching to a non-vehicle type while in auto mode, jump to sqft mode
+      if (u.projectType && merged.mode === 'auto' && !AUTO_TYPES.includes(merged.projectType)) {
+        merged.mode = 'sqft'
+      }
+      return recalc(merged)
+    }))
   }
   function removeLine(id: string) { setLines(p => p.filter(l => l.id !== id)) }
 
-  const validLines = lines.filter(l => l.L > 0)
-  const totals = calcTotals(validLines)
+  const validLines = lines.filter(l => l.subtotal > 0)
+  const discount: Discount = { type: discType, value: discValue }
+  const totals = calcTotals(validLines, discount)
 
   // ── Save ──
   async function saveQuote(status: 'draft' | 'sent') {
     if (!clientId)          { setError('Selecciona o crea un cliente primero'); return }
-    if (!validLines.length) { setError('Agrega al menos una línea con el largo del vehículo'); return }
+    if (!validLines.length) { setError('Agrega al menos una línea con precio'); return }
     setSaving(true); setError('')
 
     const qNum    = await generateQuoteNumber()
     const expires = new Date(Date.now() + 30 * 86400000).toISOString()
 
-    const items = validLines.map(l => ({
-      type: 'simple',
-      label: `${JOB_LABELS[l.job]} — ${VEHICLE_LABELS[l.vehicle]} (${l.L} ft)`,
-      description: l.description || '',
-      vehicle: l.vehicle, job: l.job, L: l.L, sqft: l.sqft,
-      qty: 1, unitPrice: l.subtotal, subtotal: l.subtotal,
-    }))
+    const items: any[] = validLines.map(l => {
+      const typeLabel = PROJECT_TYPE_LABELS[l.projectType]
+      const sizeTag = l.mode === 'auto' ? `${l.L} ft` : `${l.sqft} sq ft`
+      return {
+        type: 'simple',
+        label: `${JOB_LABELS[l.job]} — ${typeLabel} (${sizeTag})`,
+        description: l.description || '',
+        projectType: l.projectType, job: l.job, mode: l.mode,
+        L: l.L, sqft: l.sqft,
+        qty: 1, unitPrice: l.subtotal, subtotal: l.subtotal,
+      }
+    })
+
+    // Discount stored as a special item inside the same JSONB (no schema change needed)
+    if (totals.discountAmount > 0) {
+      items.push({
+        type: 'discount',
+        label: discType === 'percent' ? `Discount (${discValue}%)` : 'Discount',
+        discountType: discType, discountValue: discValue,
+        qty: 1, unitPrice: -totals.discountAmount, subtotal: -totals.discountAmount,
+      })
+    }
 
     const { data, error: err } = await supabase.from('quotes').insert({
       quote_number: qNum, client_id: clientId, status,
@@ -195,7 +231,11 @@ export default function NewQuotePage() {
         </div>
 
         {/* ── Líneas ── */}
-        {lines.map((l, idx) => (
+        {lines.map((l, idx) => {
+          const isAutoAllowed = AUTO_TYPES.includes(l.projectType)
+          const rate = l.job === 'wrap' ? WRAP_RATE : STICKER_RATE
+          const fullRate = rate + extraRate(l.projectType)
+          return (
           <div key={l.id} className="bg-white border border-gray-200 rounded-xl p-5 space-y-4">
             <div className="flex justify-between items-start">
               <p className="font-bold text-gray-800">Servicio {idx + 1}</p>
@@ -207,54 +247,136 @@ export default function NewQuotePage() {
               </div>
             </div>
 
-            {/* Vehículo */}
-            <div className="grid grid-cols-2 gap-2">
-              {(Object.keys(VEHICLE_LABELS) as VehicleKind[]).map(v => (
-                <button key={v} onClick={() => updLine(l.id, { vehicle: v })}
-                  className={`py-3 rounded-xl border-2 text-sm font-semibold transition-all ${
-                    l.vehicle === v ? 'border-orange-500 bg-orange-50 text-orange-700' : 'border-gray-200 text-gray-500 hover:border-gray-300'
-                  }`}>
-                  {v === 'truck' ? '🚚 ' : '🚛 '}{VEHICLE_LABELS[v]}
-                </button>
-              ))}
+            {/* Tipo de proyecto */}
+            <div>
+              <p className="text-xs text-gray-400 mb-1.5">Tipo de proyecto</p>
+              <div className="grid grid-cols-4 gap-2">
+                {(Object.keys(PROJECT_TYPE_LABELS) as ProjectType[]).map(t => (
+                  <button key={t} onClick={() => updLine(l.id, { projectType: t })}
+                    className={`py-2.5 rounded-xl border-2 text-xs font-semibold transition-all ${
+                      l.projectType === t ? 'border-orange-500 bg-orange-50 text-orange-700' : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                    }`}>
+                    <span className="block text-base leading-none mb-0.5">{PROJECT_TYPE_EMOJI[t]}</span>
+                    {PROJECT_TYPE_LABELS[t]}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Tipo de trabajo */}
-            <div className="grid grid-cols-2 gap-2">
-              {(Object.keys(JOB_LABELS) as JobKind[]).map(j => (
-                <button key={j} onClick={() => updLine(l.id, { job: j })}
-                  className={`py-3 rounded-xl border-2 text-sm font-semibold transition-all ${
-                    l.job === j ? 'border-orange-500 bg-orange-50 text-orange-700' : 'border-gray-200 text-gray-500 hover:border-gray-300'
-                  }`}>
-                  {JOB_LABELS[j]}
-                </button>
-              ))}
+            {l.mode !== 'manual' && (
+              <div className="grid grid-cols-2 gap-2">
+                {(Object.keys(JOB_LABELS) as JobKind[]).map(j => (
+                  <button key={j} onClick={() => updLine(l.id, { job: j })}
+                    className={`py-3 rounded-xl border-2 text-sm font-semibold transition-all ${
+                      l.job === j ? 'border-orange-500 bg-orange-50 text-orange-700' : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                    }`}>
+                    {JOB_LABELS[j]}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Modo de precio */}
+            <div>
+              <p className="text-xs text-gray-400 mb-1.5">Modo de precio</p>
+              <div className="grid grid-cols-3 gap-2">
+                {(['auto', 'sqft', 'manual'] as PriceMode[]).map(m => {
+                  const disabled = m === 'auto' && !isAutoAllowed
+                  return (
+                  <button key={m} disabled={disabled}
+                    onClick={() => updLine(l.id, { mode: m })}
+                    title={disabled ? 'Fórmula automática solo para Truck / Trailer / Food Truck' : ''}
+                    className={`py-2.5 rounded-xl border-2 text-xs font-semibold transition-all ${
+                      disabled ? 'border-gray-100 text-gray-300 cursor-not-allowed' :
+                      l.mode === m ? 'border-gray-900 bg-gray-900 text-white' : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                    }`}>
+                    {MODE_LABELS[m]}
+                  </button>
+                  )
+                })}
+              </div>
             </div>
 
-            {/* Largo */}
-            <div className="grid grid-cols-2 gap-3 items-end">
+            {/* Inputs según modo */}
+            {l.mode === 'auto' && (
+              <div className="grid grid-cols-2 gap-3 items-end">
+                <div>
+                  <p className="text-xs text-gray-400 mb-1">Largo del vehículo (ft)</p>
+                  <input type="number" min={0} step={0.5} className={inp}
+                    value={l.L || ''} placeholder="ej. 20"
+                    onChange={e => updLine(l.id, { L: parseFloat(e.target.value) || 0 })} />
+                </div>
+                <div className="text-sm text-gray-500 pb-2">
+                  {l.L > 0 && <>= <span className="font-semibold text-gray-700">{l.sqft} sq ft</span> <span className="text-xs text-gray-400">(alto fijo {FIXED_HEIGHT} ft)</span></>}
+                </div>
+              </div>
+            )}
+
+            {l.mode === 'sqft' && (
+              <div className="grid grid-cols-2 gap-3 items-end">
+                <div>
+                  <p className="text-xs text-gray-400 mb-1">Pies cuadrados (sq ft)</p>
+                  <input type="number" min={0} step={1} className={inp}
+                    value={l.manualSqft || ''} placeholder="ej. 180"
+                    onChange={e => updLine(l.id, { manualSqft: parseFloat(e.target.value) || 0 })} />
+                </div>
+                <div className="text-sm text-gray-500 pb-2">
+                  {l.manualSqft > 0 && <>× {formatCurrency(fullRate)}/sqft = <span className="font-semibold text-gray-700">{formatCurrency(l.subtotal)}</span></>}
+                </div>
+              </div>
+            )}
+
+            {l.mode === 'manual' && (
               <div>
-                <p className="text-xs text-gray-400 mb-1">Largo del vehículo (ft)</p>
-                <input type="number" min={0} step={0.5} className={inp}
-                  value={l.L || ''} placeholder="ej. 20"
-                  onChange={e => updLine(l.id, { L: parseFloat(e.target.value) || 0 })} />
+                <p className="text-xs text-gray-400 mb-1">Precio final ($)</p>
+                <input type="number" min={0} step={50} className={inp}
+                  value={l.manualPrice || ''} placeholder="ej. 2500"
+                  onChange={e => updLine(l.id, { manualPrice: parseFloat(e.target.value) || 0 })} />
+                <p className="text-[11px] text-gray-400 mt-1">Tú controlas el precio. Tax y depósito se calculan sobre este monto.</p>
               </div>
-              <div className="text-sm text-gray-500 pb-2">
-                {l.L > 0 && <>= <span className="font-semibold text-gray-700">{l.sqft} sq ft</span> <span className="text-xs text-gray-400">(alto fijo {FIXED_HEIGHT} ft)</span></>}
-              </div>
-            </div>
+            )}
 
             {/* Descripción */}
             <input className={inp} placeholder="Descripción / notas del vehículo (opcional)"
               value={l.description}
               onChange={e => updLine(l.id, { description: e.target.value })} />
           </div>
-        ))}
+        )})}
 
         <button onClick={() => setLines(p => [...p, newLine()])}
           className="w-full py-3 rounded-xl border-2 border-dashed border-gray-300 text-sm font-semibold text-gray-500 hover:border-orange-400 hover:text-orange-600 flex items-center justify-center gap-2">
-          <Plus size={16} /> Agregar otro vehículo
+          <Plus size={16} /> Agregar otro servicio
         </button>
+
+        {/* ── Descuento ── */}
+        <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-3">
+          <p className="font-bold text-gray-800 flex items-center gap-2"><Tag size={16} className="text-orange-500"/> Descuento</p>
+          <div className="grid grid-cols-3 gap-2">
+            {([['none','Sin descuento'],['percent','Porcentaje %'],['amount','Monto $']] as [DiscountType,string][]).map(([t, label]) => (
+              <button key={t} onClick={() => setDiscType(t)}
+                className={`py-2.5 rounded-xl border-2 text-xs font-semibold transition-all ${
+                  discType === t ? 'border-orange-500 bg-orange-50 text-orange-700' : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                }`}>
+                {label}
+              </button>
+            ))}
+          </div>
+          {discType !== 'none' && (
+            <div className="grid grid-cols-2 gap-3 items-end">
+              <div>
+                <p className="text-xs text-gray-400 mb-1">{discType === 'percent' ? 'Porcentaje (%)' : 'Monto ($)'}</p>
+                <input type="number" min={0} step={discType === 'percent' ? 1 : 25}
+                  max={discType === 'percent' ? 100 : undefined} className={inp}
+                  value={discValue || ''} placeholder={discType === 'percent' ? 'ej. 10' : 'ej. 200'}
+                  onChange={e => setDiscValue(parseFloat(e.target.value) || 0)} />
+              </div>
+              {totals.discountAmount > 0 && (
+                <p className="text-sm text-green-600 font-semibold pb-2">− {formatCurrency(totals.discountAmount)}</p>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* ── Notas ── */}
         <div className="bg-white border border-gray-200 rounded-xl p-5">
@@ -268,6 +390,12 @@ export default function NewQuotePage() {
           <div className="flex justify-between text-sm text-gray-600">
             <span>Subtotal</span><span>{formatCurrency(totals.subtotal)}</span>
           </div>
+          {totals.discountAmount > 0 && (
+            <div className="flex justify-between text-sm text-green-600 font-semibold">
+              <span>Descuento{discType === 'percent' ? ` (${discValue}%)` : ''}</span>
+              <span>− {formatCurrency(totals.discountAmount)}</span>
+            </div>
+          )}
           <div className="flex justify-between text-sm text-gray-600">
             <span>Tax NC (6.75%)</span><span>{formatCurrency(totals.tax)}</span>
           </div>
