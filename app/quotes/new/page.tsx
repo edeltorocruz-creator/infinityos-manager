@@ -5,10 +5,9 @@ import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import {
-  TAX_RATE, formatCurrency, generateQuoteNumber, calcLineV2, calcTotals,
-  PROJECT_TYPE_LABELS, PROJECT_TYPE_EMOJI, AUTO_TYPES, JOB_LABELS, FIXED_HEIGHT,
-  WRAP_RATE, STICKER_RATE, extraRate,
-  type SimpleLine, type ProjectType, type JobKind, type PriceMode, type Discount, type DiscountType,
+  TAX_RATE, formatCurrency, generateQuoteNumber, calcQuoteLine, calcTotals,
+  VEHICLE_LABELS, JOB_LABELS, FIXED_HEIGHT,
+  type SimpleLine, type VehicleKind, type JobKind, type Discount, type DiscountType,
 } from '@/lib/quote-engine'
 import { ArrowLeft, Save, Plus, Send, Tag } from 'lucide-react'
 
@@ -16,23 +15,16 @@ interface ClientRow { id: string; name: string; phone?: string | null; company?:
 
 const inp = "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-orange-400"
 
-const MODE_LABELS: Record<PriceMode, string> = {
-  auto:   'Automático',
-  sqft:   'SqFt manual',
-  manual: 'Precio manual',
-}
-
 function newLine(): SimpleLine {
   const base: SimpleLine = {
-    id: crypto.randomUUID(), mode: 'auto', projectType: 'truck', job: 'wrap',
-    L: 0, manualSqft: 0, manualPrice: 0,
+    id: crypto.randomUUID(), vehicle: 'truck', job: 'wrap', L: 0,
     description: '', sqft: 0, subtotal: 0,
   }
   return recalc(base)
 }
 
 function recalc(l: SimpleLine): SimpleLine {
-  const { sqft, subtotal } = calcLineV2(l)
+  const { sqft, subtotal } = calcQuoteLine(l.vehicle, l.job, l.L || 0)
   return { ...l, sqft, subtotal }
 }
 
@@ -91,48 +83,32 @@ export default function NewQuotePage() {
   }
 
   function updLine(id: string, u: Partial<SimpleLine>) {
-    setLines(p => p.map(l => {
-      if (l.id !== id) return l
-      const merged = { ...l, ...u }
-      // Auto mode only supports the original formula types (truck/trailer)
-      if (u.mode === 'auto' && !AUTO_TYPES.includes(merged.projectType)) {
-        merged.projectType = 'truck'
-      }
-      if (u.projectType && merged.mode === 'auto' && !AUTO_TYPES.includes(merged.projectType)) {
-        merged.mode = 'sqft'
-      }
-      return recalc(merged)
-    }))
+    setLines(p => p.map(l => l.id === id ? recalc({ ...l, ...u }) : l))
   }
   function removeLine(id: string) { setLines(p => p.filter(l => l.id !== id)) }
 
-  const validLines = lines.filter(l => l.subtotal > 0)
+  const validLines = lines.filter(l => l.L > 0)
   const discount: Discount = { type: discType, value: discValue }
   const totals = calcTotals(validLines, discount)
 
   // ── Save ──
   async function saveQuote(status: 'draft' | 'sent') {
     if (!clientId)          { setError('Selecciona o crea un cliente primero'); return }
-    if (!validLines.length) { setError('Agrega al menos una línea con precio'); return }
+    if (!validLines.length) { setError('Agrega al menos una línea con el largo del vehículo'); return }
     setSaving(true); setError('')
 
     const qNum    = await generateQuoteNumber()
     const expires = new Date(Date.now() + 30 * 86400000).toISOString()
 
-    const items: any[] = validLines.map(l => {
-      const typeLabel = PROJECT_TYPE_LABELS[l.projectType]
-      const sizeTag = l.mode === 'auto' ? `${l.L} ft` : `${l.sqft} sq ft`
-      return {
-        type: 'simple',
-        label: `${JOB_LABELS[l.job]} — ${typeLabel} (${sizeTag})`,
-        description: l.description || '',
-        projectType: l.projectType, job: l.job, mode: l.mode,
-        L: l.L, sqft: l.sqft,
-        qty: 1, unitPrice: l.subtotal, subtotal: l.subtotal,
-      }
-    })
+    const items: any[] = validLines.map(l => ({
+      type: 'simple',
+      label: `${JOB_LABELS[l.job]} — ${VEHICLE_LABELS[l.vehicle]} (${l.L} ft)`,
+      description: l.description || '',
+      vehicle: l.vehicle, job: l.job, L: l.L, sqft: l.sqft,
+      qty: 1, unitPrice: l.subtotal, subtotal: l.subtotal,
+    }))
 
-    // Discount stored as a special item inside the same JSONB (no schema change needed)
+    // Discount stored inside the same items JSONB (no schema change; flows to invoice)
     if (totals.discountAmount > 0) {
       items.push({
         type: 'discount',
@@ -234,9 +210,7 @@ export default function NewQuotePage() {
         </div>
 
         {/* ── Líneas ── */}
-        {lines.map((l, idx) => {
-          const rate = l.job === 'wrap' ? WRAP_RATE : STICKER_RATE
-          return (
+        {lines.map((l, idx) => (
           <div key={l.id} className="bg-white border border-gray-200 rounded-xl p-5 space-y-4">
             <div className="flex justify-between items-start">
               <p className="font-bold text-gray-800">Servicio {idx + 1}</p>
@@ -248,145 +222,53 @@ export default function NewQuotePage() {
               </div>
             </div>
 
-            {/* Modo de precio */}
-            <div>
-              <p className="text-xs text-gray-400 mb-1.5">Modo de precio</p>
-              <div className="grid grid-cols-3 gap-2">
-                {(['auto', 'sqft', 'manual'] as PriceMode[]).map(m => (
-                  <button key={m}
-                    onClick={() => updLine(l.id, { mode: m })}
-                    className={`py-2.5 rounded-xl border-2 text-xs font-semibold transition-all ${
-                      l.mode === m ? 'border-gray-900 bg-gray-900 text-white' : 'border-gray-200 text-gray-500 hover:border-gray-300'
-                    }`}>
-                    {MODE_LABELS[m]}
-                  </button>
-                ))}
-              </div>
+            {/* Vehículo */}
+            <div className="grid grid-cols-2 gap-2">
+              {(Object.keys(VEHICLE_LABELS) as VehicleKind[]).map(v => (
+                <button key={v} onClick={() => updLine(l.id, { vehicle: v })}
+                  className={`py-3 rounded-xl border-2 text-sm font-semibold transition-all ${
+                    l.vehicle === v ? 'border-orange-500 bg-orange-50 text-orange-700' : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                  }`}>
+                  {v === 'truck' ? '🚚 ' : '🚛 '}{VEHICLE_LABELS[v]}
+                </button>
+              ))}
             </div>
 
-            {/* AUTOMÁTICO — la fórmula original, idéntica a siempre */}
-            {l.mode === 'auto' && (
-              <>
-                {/* Vehículo (Truck / Trailer — como siempre) */}
-                <div className="grid grid-cols-2 gap-2">
-                  {(['truck', 'trailer'] as ProjectType[]).map(v => (
-                    <button key={v} onClick={() => updLine(l.id, { projectType: v })}
-                      className={`py-3 rounded-xl border-2 text-sm font-semibold transition-all ${
-                        l.projectType === v ? 'border-orange-500 bg-orange-50 text-orange-700' : 'border-gray-200 text-gray-500 hover:border-gray-300'
-                      }`}>
-                      {v === 'truck' ? '🚚 Truck' : '🚛 Trailer'}
-                    </button>
-                  ))}
-                </div>
+            {/* Tipo de trabajo */}
+            <div className="grid grid-cols-2 gap-2">
+              {(Object.keys(JOB_LABELS) as JobKind[]).map(j => (
+                <button key={j} onClick={() => updLine(l.id, { job: j })}
+                  className={`py-3 rounded-xl border-2 text-sm font-semibold transition-all ${
+                    l.job === j ? 'border-orange-500 bg-orange-50 text-orange-700' : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                  }`}>
+                  {JOB_LABELS[j]}
+                </button>
+              ))}
+            </div>
 
-                {/* Tipo de trabajo */}
-                <div className="grid grid-cols-2 gap-2">
-                  {(Object.keys(JOB_LABELS) as JobKind[]).map(j => (
-                    <button key={j} onClick={() => updLine(l.id, { job: j })}
-                      className={`py-3 rounded-xl border-2 text-sm font-semibold transition-all ${
-                        l.job === j ? 'border-orange-500 bg-orange-50 text-orange-700' : 'border-gray-200 text-gray-500 hover:border-gray-300'
-                      }`}>
-                      {JOB_LABELS[j]}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Largo */}
-                <div className="grid grid-cols-2 gap-3 items-end">
-                  <div>
-                    <p className="text-xs text-gray-400 mb-1">Largo del vehículo (ft)</p>
-                    <input type="number" min={0} step={0.5} className={inp}
-                      value={l.L || ''} placeholder="ej. 20"
-                      onChange={e => updLine(l.id, { L: parseFloat(e.target.value) || 0 })} />
-                  </div>
-                  <div className="text-sm text-gray-500 pb-2">
-                    {l.L > 0 && <>= <span className="font-semibold text-gray-700">{l.sqft} sq ft</span> <span className="text-xs text-gray-400">(alto fijo {FIXED_HEIGHT} ft)</span></>}
-                  </div>
-                </div>
-              </>
-            )}
-
-            {/* SQFT MANUAL — tú pones los pies cuadrados, la fórmula pone el precio */}
-            {l.mode === 'sqft' && (
-              <>
-                <div>
-                  <p className="text-xs text-gray-400 mb-1.5">Tipo de proyecto</p>
-                  <div className="grid grid-cols-4 gap-2">
-                    {(Object.keys(PROJECT_TYPE_LABELS) as ProjectType[]).map(t => (
-                      <button key={t} onClick={() => updLine(l.id, { projectType: t })}
-                        className={`py-2.5 rounded-xl border-2 text-xs font-semibold transition-all ${
-                          l.projectType === t ? 'border-orange-500 bg-orange-50 text-orange-700' : 'border-gray-200 text-gray-500 hover:border-gray-300'
-                        }`}>
-                        <span className="block text-base leading-none mb-0.5">{PROJECT_TYPE_EMOJI[t]}</span>
-                        {PROJECT_TYPE_LABELS[t]}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  {(Object.keys(JOB_LABELS) as JobKind[]).map(j => (
-                    <button key={j} onClick={() => updLine(l.id, { job: j })}
-                      className={`py-3 rounded-xl border-2 text-sm font-semibold transition-all ${
-                        l.job === j ? 'border-orange-500 bg-orange-50 text-orange-700' : 'border-gray-200 text-gray-500 hover:border-gray-300'
-                      }`}>
-                      {JOB_LABELS[j]}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 items-end">
-                  <div>
-                    <p className="text-xs text-gray-400 mb-1">Pies cuadrados (sq ft)</p>
-                    <input type="number" min={0} step={1} className={inp}
-                      value={l.manualSqft || ''} placeholder="ej. 180"
-                      onChange={e => updLine(l.id, { manualSqft: parseFloat(e.target.value) || 0 })} />
-                  </div>
-                  <div className="text-sm text-gray-500 pb-2">
-                    {l.manualSqft > 0 && <>× {formatCurrency(rate + extraRate(l.projectType))}/sqft = <span className="font-semibold text-gray-700">{formatCurrency(l.subtotal)}</span></>}
-                  </div>
-                </div>
-              </>
-            )}
-
-            {/* PRECIO MANUAL — tú controlas el precio final */}
-            {l.mode === 'manual' && (
-              <>
-                <div>
-                  <p className="text-xs text-gray-400 mb-1.5">Tipo de proyecto</p>
-                  <div className="grid grid-cols-4 gap-2">
-                    {(Object.keys(PROJECT_TYPE_LABELS) as ProjectType[]).map(t => (
-                      <button key={t} onClick={() => updLine(l.id, { projectType: t })}
-                        className={`py-2.5 rounded-xl border-2 text-xs font-semibold transition-all ${
-                          l.projectType === t ? 'border-orange-500 bg-orange-50 text-orange-700' : 'border-gray-200 text-gray-500 hover:border-gray-300'
-                        }`}>
-                        <span className="block text-base leading-none mb-0.5">{PROJECT_TYPE_EMOJI[t]}</span>
-                        {PROJECT_TYPE_LABELS[t]}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <p className="text-xs text-gray-400 mb-1">Precio final ($)</p>
-                  <input type="number" min={0} step={50} className={inp}
-                    value={l.manualPrice || ''} placeholder="ej. 2500"
-                    onChange={e => updLine(l.id, { manualPrice: parseFloat(e.target.value) || 0 })} />
-                  <p className="text-[11px] text-gray-400 mt-1">Tú controlas el precio. Tax y depósito se calculan sobre este monto.</p>
-                </div>
-              </>
-            )}
+            {/* Largo */}
+            <div className="grid grid-cols-2 gap-3 items-end">
+              <div>
+                <p className="text-xs text-gray-400 mb-1">Largo del vehículo (ft)</p>
+                <input type="number" min={0} step={0.5} className={inp}
+                  value={l.L || ''} placeholder="ej. 20"
+                  onChange={e => updLine(l.id, { L: parseFloat(e.target.value) || 0 })} />
+              </div>
+              <div className="text-sm text-gray-500 pb-2">
+                {l.L > 0 && <>= <span className="font-semibold text-gray-700">{l.sqft} sq ft</span> <span className="text-xs text-gray-400">(alto fijo {FIXED_HEIGHT} ft)</span></>}
+              </div>
+            </div>
 
             {/* Descripción */}
             <input className={inp} placeholder="Descripción / notas del vehículo (opcional)"
               value={l.description}
               onChange={e => updLine(l.id, { description: e.target.value })} />
           </div>
-        )})}
+        ))}
 
         <button onClick={() => setLines(p => [...p, newLine()])}
           className="w-full py-3 rounded-xl border-2 border-dashed border-gray-300 text-sm font-semibold text-gray-500 hover:border-orange-400 hover:text-orange-600 flex items-center justify-center gap-2">
-          <Plus size={16} /> Agregar otro servicio
+          <Plus size={16} /> Agregar otro vehículo
         </button>
 
         {/* ── Descuento ── */}
