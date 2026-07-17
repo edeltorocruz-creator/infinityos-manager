@@ -94,7 +94,10 @@ export default function NewQuotePage() {
     setLines(p => p.map(l => {
       if (l.id !== id) return l
       const merged = { ...l, ...u }
-      // If switching to a non-vehicle type while in auto mode, jump to sqft mode
+      // Auto mode only supports the original formula types (truck/trailer)
+      if (u.mode === 'auto' && !AUTO_TYPES.includes(merged.projectType)) {
+        merged.projectType = 'truck'
+      }
       if (u.projectType && merged.mode === 'auto' && !AUTO_TYPES.includes(merged.projectType)) {
         merged.mode = 'sqft'
       }
@@ -232,9 +235,7 @@ export default function NewQuotePage() {
 
         {/* ── Líneas ── */}
         {lines.map((l, idx) => {
-          const isAutoAllowed = AUTO_TYPES.includes(l.projectType)
           const rate = l.job === 'wrap' ? WRAP_RATE : STICKER_RATE
-          const fullRate = rate + extraRate(l.projectType)
           return (
           <div key={l.id} className="bg-white border border-gray-200 rounded-xl p-5 space-y-4">
             <div className="flex justify-between items-start">
@@ -247,94 +248,133 @@ export default function NewQuotePage() {
               </div>
             </div>
 
-            {/* Tipo de proyecto */}
-            <div>
-              <p className="text-xs text-gray-400 mb-1.5">Tipo de proyecto</p>
-              <div className="grid grid-cols-4 gap-2">
-                {(Object.keys(PROJECT_TYPE_LABELS) as ProjectType[]).map(t => (
-                  <button key={t} onClick={() => updLine(l.id, { projectType: t })}
-                    className={`py-2.5 rounded-xl border-2 text-xs font-semibold transition-all ${
-                      l.projectType === t ? 'border-orange-500 bg-orange-50 text-orange-700' : 'border-gray-200 text-gray-500 hover:border-gray-300'
-                    }`}>
-                    <span className="block text-base leading-none mb-0.5">{PROJECT_TYPE_EMOJI[t]}</span>
-                    {PROJECT_TYPE_LABELS[t]}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Tipo de trabajo */}
-            {l.mode !== 'manual' && (
-              <div className="grid grid-cols-2 gap-2">
-                {(Object.keys(JOB_LABELS) as JobKind[]).map(j => (
-                  <button key={j} onClick={() => updLine(l.id, { job: j })}
-                    className={`py-3 rounded-xl border-2 text-sm font-semibold transition-all ${
-                      l.job === j ? 'border-orange-500 bg-orange-50 text-orange-700' : 'border-gray-200 text-gray-500 hover:border-gray-300'
-                    }`}>
-                    {JOB_LABELS[j]}
-                  </button>
-                ))}
-              </div>
-            )}
-
             {/* Modo de precio */}
             <div>
               <p className="text-xs text-gray-400 mb-1.5">Modo de precio</p>
               <div className="grid grid-cols-3 gap-2">
-                {(['auto', 'sqft', 'manual'] as PriceMode[]).map(m => {
-                  const disabled = m === 'auto' && !isAutoAllowed
-                  return (
-                  <button key={m} disabled={disabled}
+                {(['auto', 'sqft', 'manual'] as PriceMode[]).map(m => (
+                  <button key={m}
                     onClick={() => updLine(l.id, { mode: m })}
-                    title={disabled ? 'Fórmula automática solo para Truck / Trailer / Food Truck' : ''}
                     className={`py-2.5 rounded-xl border-2 text-xs font-semibold transition-all ${
-                      disabled ? 'border-gray-100 text-gray-300 cursor-not-allowed' :
                       l.mode === m ? 'border-gray-900 bg-gray-900 text-white' : 'border-gray-200 text-gray-500 hover:border-gray-300'
                     }`}>
                     {MODE_LABELS[m]}
                   </button>
-                  )
-                })}
+                ))}
               </div>
             </div>
 
-            {/* Inputs según modo */}
+            {/* AUTOMÁTICO — la fórmula original, idéntica a siempre */}
             {l.mode === 'auto' && (
-              <div className="grid grid-cols-2 gap-3 items-end">
-                <div>
-                  <p className="text-xs text-gray-400 mb-1">Largo del vehículo (ft)</p>
-                  <input type="number" min={0} step={0.5} className={inp}
-                    value={l.L || ''} placeholder="ej. 20"
-                    onChange={e => updLine(l.id, { L: parseFloat(e.target.value) || 0 })} />
+              <>
+                {/* Vehículo (Truck / Trailer — como siempre) */}
+                <div className="grid grid-cols-2 gap-2">
+                  {(['truck', 'trailer'] as ProjectType[]).map(v => (
+                    <button key={v} onClick={() => updLine(l.id, { projectType: v })}
+                      className={`py-3 rounded-xl border-2 text-sm font-semibold transition-all ${
+                        l.projectType === v ? 'border-orange-500 bg-orange-50 text-orange-700' : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                      }`}>
+                      {v === 'truck' ? '🚚 Truck' : '🚛 Trailer'}
+                    </button>
+                  ))}
                 </div>
-                <div className="text-sm text-gray-500 pb-2">
-                  {l.L > 0 && <>= <span className="font-semibold text-gray-700">{l.sqft} sq ft</span> <span className="text-xs text-gray-400">(alto fijo {FIXED_HEIGHT} ft)</span></>}
+
+                {/* Tipo de trabajo */}
+                <div className="grid grid-cols-2 gap-2">
+                  {(Object.keys(JOB_LABELS) as JobKind[]).map(j => (
+                    <button key={j} onClick={() => updLine(l.id, { job: j })}
+                      className={`py-3 rounded-xl border-2 text-sm font-semibold transition-all ${
+                        l.job === j ? 'border-orange-500 bg-orange-50 text-orange-700' : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                      }`}>
+                      {JOB_LABELS[j]}
+                    </button>
+                  ))}
                 </div>
-              </div>
+
+                {/* Largo */}
+                <div className="grid grid-cols-2 gap-3 items-end">
+                  <div>
+                    <p className="text-xs text-gray-400 mb-1">Largo del vehículo (ft)</p>
+                    <input type="number" min={0} step={0.5} className={inp}
+                      value={l.L || ''} placeholder="ej. 20"
+                      onChange={e => updLine(l.id, { L: parseFloat(e.target.value) || 0 })} />
+                  </div>
+                  <div className="text-sm text-gray-500 pb-2">
+                    {l.L > 0 && <>= <span className="font-semibold text-gray-700">{l.sqft} sq ft</span> <span className="text-xs text-gray-400">(alto fijo {FIXED_HEIGHT} ft)</span></>}
+                  </div>
+                </div>
+              </>
             )}
 
+            {/* SQFT MANUAL — tú pones los pies cuadrados, la fórmula pone el precio */}
             {l.mode === 'sqft' && (
-              <div className="grid grid-cols-2 gap-3 items-end">
+              <>
                 <div>
-                  <p className="text-xs text-gray-400 mb-1">Pies cuadrados (sq ft)</p>
-                  <input type="number" min={0} step={1} className={inp}
-                    value={l.manualSqft || ''} placeholder="ej. 180"
-                    onChange={e => updLine(l.id, { manualSqft: parseFloat(e.target.value) || 0 })} />
+                  <p className="text-xs text-gray-400 mb-1.5">Tipo de proyecto</p>
+                  <div className="grid grid-cols-4 gap-2">
+                    {(Object.keys(PROJECT_TYPE_LABELS) as ProjectType[]).map(t => (
+                      <button key={t} onClick={() => updLine(l.id, { projectType: t })}
+                        className={`py-2.5 rounded-xl border-2 text-xs font-semibold transition-all ${
+                          l.projectType === t ? 'border-orange-500 bg-orange-50 text-orange-700' : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                        }`}>
+                        <span className="block text-base leading-none mb-0.5">{PROJECT_TYPE_EMOJI[t]}</span>
+                        {PROJECT_TYPE_LABELS[t]}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <div className="text-sm text-gray-500 pb-2">
-                  {l.manualSqft > 0 && <>× {formatCurrency(fullRate)}/sqft = <span className="font-semibold text-gray-700">{formatCurrency(l.subtotal)}</span></>}
+
+                <div className="grid grid-cols-2 gap-2">
+                  {(Object.keys(JOB_LABELS) as JobKind[]).map(j => (
+                    <button key={j} onClick={() => updLine(l.id, { job: j })}
+                      className={`py-3 rounded-xl border-2 text-sm font-semibold transition-all ${
+                        l.job === j ? 'border-orange-500 bg-orange-50 text-orange-700' : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                      }`}>
+                      {JOB_LABELS[j]}
+                    </button>
+                  ))}
                 </div>
-              </div>
+
+                <div className="grid grid-cols-2 gap-3 items-end">
+                  <div>
+                    <p className="text-xs text-gray-400 mb-1">Pies cuadrados (sq ft)</p>
+                    <input type="number" min={0} step={1} className={inp}
+                      value={l.manualSqft || ''} placeholder="ej. 180"
+                      onChange={e => updLine(l.id, { manualSqft: parseFloat(e.target.value) || 0 })} />
+                  </div>
+                  <div className="text-sm text-gray-500 pb-2">
+                    {l.manualSqft > 0 && <>× {formatCurrency(rate + extraRate(l.projectType))}/sqft = <span className="font-semibold text-gray-700">{formatCurrency(l.subtotal)}</span></>}
+                  </div>
+                </div>
+              </>
             )}
 
+            {/* PRECIO MANUAL — tú controlas el precio final */}
             {l.mode === 'manual' && (
-              <div>
-                <p className="text-xs text-gray-400 mb-1">Precio final ($)</p>
-                <input type="number" min={0} step={50} className={inp}
-                  value={l.manualPrice || ''} placeholder="ej. 2500"
-                  onChange={e => updLine(l.id, { manualPrice: parseFloat(e.target.value) || 0 })} />
-                <p className="text-[11px] text-gray-400 mt-1">Tú controlas el precio. Tax y depósito se calculan sobre este monto.</p>
-              </div>
+              <>
+                <div>
+                  <p className="text-xs text-gray-400 mb-1.5">Tipo de proyecto</p>
+                  <div className="grid grid-cols-4 gap-2">
+                    {(Object.keys(PROJECT_TYPE_LABELS) as ProjectType[]).map(t => (
+                      <button key={t} onClick={() => updLine(l.id, { projectType: t })}
+                        className={`py-2.5 rounded-xl border-2 text-xs font-semibold transition-all ${
+                          l.projectType === t ? 'border-orange-500 bg-orange-50 text-orange-700' : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                        }`}>
+                        <span className="block text-base leading-none mb-0.5">{PROJECT_TYPE_EMOJI[t]}</span>
+                        {PROJECT_TYPE_LABELS[t]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-xs text-gray-400 mb-1">Precio final ($)</p>
+                  <input type="number" min={0} step={50} className={inp}
+                    value={l.manualPrice || ''} placeholder="ej. 2500"
+                    onChange={e => updLine(l.id, { manualPrice: parseFloat(e.target.value) || 0 })} />
+                  <p className="text-[11px] text-gray-400 mt-1">Tú controlas el precio. Tax y depósito se calculan sobre este monto.</p>
+                </div>
+              </>
             )}
 
             {/* Descripción */}

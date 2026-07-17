@@ -43,12 +43,12 @@ export const PROJECT_TYPE_EMOJI: Record<ProjectType, string> = {
   food_truck: '🍔', mural: '🎨', window: '🪟', signage: '🪧',
 }
 
-// Types where the auto length-formula applies (fixed H = 7.7 ft was designed for these)
-export const AUTO_TYPES: ProjectType[] = ['truck', 'trailer', 'food_truck']
+// Types where the auto length-formula applies — ONLY truck & trailer (the original formula)
+export const AUTO_TYPES: ProjectType[] = ['truck', 'trailer']
 
-// Per-sqft extra by project type (Eduardo's formula: truck +4, trailer +2.93)
+// Per-sqft extra — STRICTLY Eduardo's formula: truck +4, trailer +2.93, nothing else
 export function extraRate(t: ProjectType): number {
-  if (t === 'truck' || t === 'food_truck') return TRUCK_EXTRA
+  if (t === 'truck') return TRUCK_EXTRA
   if (t === 'trailer') return TRAILER_EXTRA
   return 0
 }
