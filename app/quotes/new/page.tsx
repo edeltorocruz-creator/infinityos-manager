@@ -309,8 +309,8 @@ export default function NewQuotePage() {
                   value={discValue || ''} placeholder={discType === 'percent' ? 'ej. 10' : 'ej. 200'}
                   onChange={e => setDiscValue(parseFloat(e.target.value) || 0)} />
               </div>
-              {totals.discountAmount > 0 && (
-                <p className="text-sm text-green-600 font-semibold pb-2">− {formatCurrency(totals.discountAmount)}</p>
+              {discountAmount > 0 && (
+                <p className="text-sm text-green-600 font-semibold pb-2">− {formatCurrency(discountAmount)}</p>
               )}
             </div>
           )}
