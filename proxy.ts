@@ -3,7 +3,16 @@ import type { NextRequest } from 'next/server'
 
 const PUBLIC_PATHS = ['/login', '/_next', '/favicon.ico', '/api']
 
+// TEMPORARILY DISABLED (2026-08-24): login gate turned off while we test
+// the app end-to-end. Re-enable by restoring the auth-cookie check below
+// before this goes out to anyone besides the owner testing it.
+const LOGIN_ENABLED = false
+
 export function proxy(req: NextRequest) {
+  if (!LOGIN_ENABLED) {
+    return NextResponse.next()
+  }
+
   const { pathname } = req.nextUrl
 
   // Allow public paths
