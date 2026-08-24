@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic'
 import { useState, useEffect, useRef } from 'react'
 
 export default function LoginPage() {
-  const [email,    setEmail]    = useState('edeltorocruz@gmail.com')
+  const [email,    setEmail]    = useState('')
   const [password, setPassword] = useState('')
   const [loading,  setLoading]  = useState(false)
   const [error,    setError]    = useState('')
@@ -43,43 +43,56 @@ export default function LoginPage() {
     (window as any).__login = (pwd: string) => doLogin(pwd)
   }, [email])
 
-  const inp: React.CSSProperties = {
-    width: '100%', background: '#0a0c13', border: '1px solid #1e2235',
-    borderRadius: '10px', padding: '12px 16px', color: '#fff',
-    fontSize: '14px', outline: 'none', boxSizing: 'border-box', display: 'block'
-  }
-
   return (
-    <div style={{ minHeight: '100vh', background: '#0a0c13', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'system-ui,sans-serif' }}>
-      <div style={{ background: '#12151f', border: '1px solid #1e2235', borderRadius: '16px', padding: '48px 40px', width: '100%', maxWidth: '400px', boxShadow: '0 25px 50px rgba(0,0,0,0.5)' }}>
-        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-          <div style={{ background: 'linear-gradient(135deg,#ff6b00,#ff9500)', borderRadius: '14px', width: '56px', height: '56px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px', marginBottom: '16px', boxShadow: '0 8px 24px rgba(255,107,0,0.3)' }}>∞</div>
-          <h1 style={{ color: '#fff', fontSize: '22px', fontWeight: 800, margin: '0 0 4px' }}>Infinity Wrap</h1>
-          <p style={{ color: '#6b7280', fontSize: '14px', margin: 0 }}>Manager OS</p>
+    <div className="min-h-screen bg-white flex items-center justify-center font-sans">
+      <div className="bg-white border border-gray-200 rounded-2xl shadow-xl px-10 py-12 w-full max-w-[400px]">
+        <div className="text-center mb-10">
+          <div className="mx-auto mb-4 w-14 h-14 rounded-2xl flex items-center justify-center text-2xl text-white font-bold shadow-lg"
+               style={{ background: 'linear-gradient(135deg,#ff6b00,#ff9500)', boxShadow: '0 8px 24px rgba(255,107,0,0.3)' }}>
+            ∞
+          </div>
+          <h1 className="text-gray-900 text-xl font-extrabold m-0">Infinity Wrap</h1>
+          <p className="text-gray-500 text-sm mt-1">Manager OS</p>
         </div>
-        <div style={{ marginBottom: '20px' }}>
-          <label style={{ color: '#9ca3af', fontSize: '13px', fontWeight: 500, display: 'block', marginBottom: '8px' }}>Email</label>
-          <input ref={emailRef} type="email" autoComplete="username" value={email} onChange={e => setEmail(e.target.value)}
-            onKeyDown={e => e.key==='Enter' && doLogin()} style={inp}
-            onFocus={e => e.target.style.borderColor='#ff6b00'} onBlur={e => e.target.style.borderColor='#1e2235'} />
+
+        <div className="mb-5">
+          <label className="block text-gray-600 text-xs font-medium mb-2">Email</label>
+          <input
+            ref={emailRef} type="email" autoComplete="username" value={email}
+            onChange={e => setEmail(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && doLogin()}
+            className="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-900 outline-none focus:border-orange-500 transition-colors"
+          />
         </div>
-        <div style={{ marginBottom: '28px' }}>
-          <label style={{ color: '#9ca3af', fontSize: '13px', fontWeight: 500, display: 'block', marginBottom: '8px' }}>Password</label>
-          <input ref={passwordRef} type="password" autoComplete="current-password" placeholder="••••••••"
+
+        <div className="mb-7">
+          <label className="block text-gray-600 text-xs font-medium mb-2">Password</label>
+          <input
+            ref={passwordRef} type="password" autoComplete="current-password" placeholder="••••••••"
             value={password} onChange={e => setPassword(e.target.value)}
-            onKeyDown={e => e.key==='Enter' && doLogin()} style={inp}
-            onFocus={e => e.target.style.borderColor='#ff6b00'} onBlur={e => e.target.style.borderColor='#1e2235'} />
+            onKeyDown={e => e.key === 'Enter' && doLogin()}
+            className="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-900 outline-none focus:border-orange-500 transition-colors"
+          />
         </div>
+
         {error && (
-          <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '10px', padding: '12px 16px', color: '#f87171', fontSize: '13px', marginBottom: '20px' }}>
+          <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-red-600 text-sm mb-5">
             {error}
           </div>
         )}
-        <button onClick={() => doLogin()} disabled={loading}
-          style={{ width: '100%', background: loading?'#374151':'linear-gradient(135deg,#ff6b00,#ff9500)', border: 'none', borderRadius: '10px', padding: '14px', color: '#fff', fontSize: '15px', fontWeight: 700, cursor: loading?'not-allowed':'pointer', boxShadow: loading?'none':'0 4px 15px rgba(255,107,0,0.3)' }}>
+
+        <button
+          onClick={() => doLogin()} disabled={loading}
+          className="w-full rounded-lg py-3.5 text-white text-[15px] font-bold transition-colors disabled:cursor-not-allowed"
+          style={{
+            background: loading ? '#9ca3af' : 'linear-gradient(135deg,#ff6b00,#ff9500)',
+            boxShadow: loading ? 'none' : '0 4px 15px rgba(255,107,0,0.3)'
+          }}
+        >
           {loading ? 'Signing in...' : 'Sign In →'}
         </button>
-        <p style={{ color: '#374151', fontSize: '12px', textAlign: 'center', marginTop: '28px' }}>
+
+        <p className="text-gray-400 text-xs text-center mt-7">
           Infinity Wrap Design — Internal System
         </p>
       </div>
