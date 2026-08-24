@@ -399,9 +399,13 @@ If you cannot read a field clearly, use null. For date, default to today if uncl
 
                 <p className="text-lg font-bold text-red-500 flex-shrink-0">{formatCurrency(expense.amount)}</p>
 
-                <div className="flex gap-1 flex-shrink-0">
-                  <button onClick={() => openEdit(expense)} className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg"><Edit2 size={14}/></button>
-                  <button onClick={() => deleteExpense(expense.id)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={14}/></button>
+                <div className="flex gap-2 flex-shrink-0">
+                  <button onClick={() => openEdit(expense)} className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Editar gasto">
+                    <Edit2 size={16}/>
+                  </button>
+                  <button onClick={() => deleteExpense(expense.id)} className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Borrar gasto">
+                    <Trash2 size={16}/>
+                  </button>
                 </div>
               </div>
             ))}
@@ -550,13 +554,25 @@ If you cannot read a field clearly, use null. For date, default to today if uncl
             {/* Footer */}
             {(ocrState === 'done' || ocrState === 'error' || !showOCR || editing) && (
               <div className="flex gap-3 p-6 border-t border-gray-100">
-                <button onClick={() => { setShowForm(false); setShowOCR(false); setOcrPreview(null); setOcrState('idle') }}
+                {editing && (
+                  <button onClick={() => {
+                    if (confirm('¿Borrar este gasto?')) {
+                      deleteExpense(editing.id)
+                      setShowForm(false)
+                      setEditing(null)
+                    }
+                  }}
+                    className="px-4 py-2.5 border border-red-200 text-red-600 rounded-xl font-medium hover:bg-red-50 transition-colors flex items-center justify-center gap-2">
+                    <Trash2 size={14}/>Borrar
+                  </button>
+                )}
+                <button onClick={() => { setShowForm(false); setShowOCR(false); setOcrPreview(null); setOcrState('idle'); setEditing(null) }}
                   className="flex-1 border border-gray-200 text-gray-600 py-2.5 rounded-xl font-medium hover:bg-gray-50 transition-colors">
-                  Cancel
+                  Cancelar
                 </button>
                 <button onClick={saveExpense} disabled={saving || !form.description.trim() || !form.amount}
                   className="flex-1 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white py-2.5 rounded-xl font-bold transition-colors flex items-center justify-center gap-2">
-                  {saving ? <><Loader size={14} className="animate-spin"/>Saving...</> : <><CheckCircle size={14}/>{editing ? 'Update' : 'Save Expense'}</>}
+                  {saving ? <><Loader size={14} className="animate-spin"/>Guardando...</> : <><CheckCircle size={14}/>{editing ? 'Actualizar' : 'Guardar Gasto'}</>}
                 </button>
               </div>
             )}
