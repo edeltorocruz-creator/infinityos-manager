@@ -291,7 +291,7 @@ export default function NewQuotePage() {
         <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-3">
           <p className="font-bold text-gray-800 flex items-center gap-2"><Tag size={16} className="text-orange-500"/> Descuento</p>
           <div className="grid grid-cols-3 gap-2">
-            {([['none','Sin descuento'],['percent','Porcentaje %'],['amount','Monto $']] as [DiscountType,string][]).map(([t, label]) => (
+            {([['none','Sin descuento'],['percent','Porcentaje %'],['amount','Monto $']] as const).map(([t, label]) => (
               <button key={t} onClick={() => setDiscType(t)}
                 className={`py-2.5 rounded-xl border-2 text-xs font-semibold transition-all ${
                   discType === t ? 'border-orange-500 bg-orange-50 text-orange-700' : 'border-gray-200 text-gray-500 hover:border-gray-300'
