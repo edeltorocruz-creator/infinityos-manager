@@ -4,28 +4,21 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import {
-  TAX_RATE, formatCurrency, generateQuoteNumber, calcQuoteLine, calcTotals,
-  VEHICLE_LABELS, JOB_LABELS, FIXED_HEIGHT,
-  type SimpleLine, type VehicleKind, type JobKind, type Discount, type DiscountType,
-} from '@/lib/quote-engine'
-import { ArrowLeft, Save, Plus, Send, Tag } from 'lucide-react'
+import { TAX_RATE, formatCurrency, generateQuoteNumber } from '@/lib/quote-engine'
+import { ArrowLeft, Save, Plus, Send, Tag, Trash2 } from 'lucide-react'
 
 interface ClientRow { id: string; name: string; phone?: string | null; company?: string | null }
+interface LineItem { id: string; description: string; qty: number; unitPrice: number }
 
 const inp = "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-orange-400"
 
-function newLine(): SimpleLine {
-  const base: SimpleLine = {
-    id: crypto.randomUUID(), vehicle: 'truck', job: 'wrap', L: 0,
-    description: '', sqft: 0, subtotal: 0,
+function newLine(): LineItem {
+  return {
+    id: crypto.randomUUID(),
+    description: '',
+    qty: 1,
+    unitPrice: 0,
   }
-  return recalc(base)
-}
-
-function recalc(l: SimpleLine): SimpleLine {
-  const { sqft, subtotal } = calcQuoteLine(l.vehicle, l.job, l.L || 0)
-  return { ...l, sqft, subtotal }
 }
 
 export default function NewQuotePage() {
@@ -41,11 +34,11 @@ export default function NewQuotePage() {
   const [newClientPhone, setNewClientPhone] = useState('')
 
   // ── Lines ──
-  const [lines, setLines] = useState<SimpleLine[]>([newLine()])
+  const [lines, setLines] = useState<LineItem[]>([newLine()])
   const [notes, setNotes] = useState('')
 
   // ── Discount ──
-  const [discType, setDiscType]   = useState<DiscountType>('none')
+  const [discType, setDiscType]   = useState<'none' | 'percent' | 'amount'>('none')
   const [discValue, setDiscValue] = useState<number>(0)
 
   const [saving, setSaving] = useState(false)
@@ -82,50 +75,75 @@ export default function NewQuotePage() {
     setError('')
   }
 
-  function updLine(id: string, u: Partial<SimpleLine>) {
-    setLines(p => p.map(l => l.id === id ? recalc({ ...l, ...u }) : l))
+  function updLine(id: string, u: Partial<LineItem>) {
+    setLines(p => p.map(l => l.id === id ? { ...l, ...u } : l))
   }
   function removeLine(id: string) { setLines(p => p.filter(l => l.id !== id)) }
 
-  const validLines = lines.filter(l => l.L > 0)
-  const discount: Discount = { type: discType, value: discValue }
-  const totals = calcTotals(validLines, discount)
+  // ── Calculations ──
+  const subtotal = lines.reduce((sum, l) => sum + (l.qty * l.unitPrice), 0)
+  let discountAmount = 0
+  if (discType === 'percent') {
+    discountAmount = subtotal * (discValue / 100)
+  } else if (discType === 'amount') {
+    discountAmount = discValue
+  }
+  const subtotalAfterDisc = subtotal - discountAmount
+  const tax = subtotalAfterDisc * TAX_RATE
+  const total = subtotalAfterDisc + tax
+  const deposit = total * 0.5  // 50% por defecto
+  const balance = total - deposit
 
   // ── Save ──
   async function saveQuote(status: 'draft' | 'sent') {
     if (!clientId)          { setError('Selecciona o crea un cliente primero'); return }
-    if (!validLines.length) { setError('Agrega al menos una línea con el largo del vehículo'); return }
+    if (!lines.some(l => l.description.trim() && l.unitPrice > 0)) { 
+      setError('Agrega al menos una línea con descripción y precio'); 
+      return 
+    }
     setSaving(true); setError('')
 
     const qNum    = await generateQuoteNumber()
     const expires = new Date(Date.now() + 30 * 86400000).toISOString()
 
-    const items: any[] = validLines.map(l => ({
-      type: 'simple',
-      label: `${JOB_LABELS[l.job]} — ${VEHICLE_LABELS[l.vehicle]} (${l.L} ft)`,
-      description: l.description || '',
-      vehicle: l.vehicle, job: l.job, L: l.L, sqft: l.sqft,
-      qty: 1, unitPrice: l.subtotal, subtotal: l.subtotal,
-    }))
+    const items: any[] = lines
+      .filter(l => l.description.trim() && l.unitPrice > 0)
+      .map(l => ({
+        type: 'line',
+        label: l.description,
+        description: '',
+        qty: l.qty,
+        unitPrice: l.unitPrice,
+        subtotal: l.qty * l.unitPrice,
+      }))
 
-    // Discount stored inside the same items JSONB (no schema change; flows to invoice)
-    if (totals.discountAmount > 0) {
+    // Discount stored inside items
+    if (discountAmount > 0) {
       items.push({
         type: 'discount',
-        label: discType === 'percent' ? `Discount (${discValue}%)` : 'Discount',
-        discountType: discType, discountValue: discValue,
-        qty: 1, unitPrice: -totals.discountAmount, subtotal: -totals.discountAmount,
+        label: discType === 'percent' ? `Descuento (${discValue}%)` : 'Descuento',
+        discountType: discType,
+        discountValue: discValue,
+        qty: 1,
+        unitPrice: -discountAmount,
+        subtotal: -discountAmount,
       })
     }
 
     const { data, error: err } = await supabase.from('quotes').insert({
-      quote_number: qNum, client_id: clientId, status,
-      items, subtotal: totals.subtotal,
-      tax_rate: TAX_RATE, tax_amount: totals.tax,
-      total: totals.total, deposit_amount: totals.deposit,
-      balance: totals.balance,
+      quote_number: qNum,
+      client_id: clientId,
+      status,
+      items,
+      subtotal,
+      tax_rate: TAX_RATE,
+      tax_amount: tax,
+      total,
+      deposit_amount: deposit,
+      balance,
       notes: notes || null,
-      expires_at: expires, valid_days: 30,
+      expires_at: expires,
+      valid_days: 30,
     }).select().single()
 
     if (err) { setError(err.message); setSaving(false); return }
@@ -209,67 +227,65 @@ export default function NewQuotePage() {
           )}
         </div>
 
-        {/* ── Líneas ── */}
-        {lines.map((l, idx) => (
-          <div key={l.id} className="bg-white border border-gray-200 rounded-xl p-5 space-y-4">
-            <div className="flex justify-between items-start">
-              <p className="font-bold text-gray-800">Servicio {idx + 1}</p>
-              <div className="flex items-center gap-3">
-                <span className="text-xl font-bold text-orange-600">{formatCurrency(l.subtotal)}</span>
+        {/* ── Líneas de Detalle ── */}
+        <div className="bg-white border border-gray-200 rounded-xl p-5">
+          <p className="font-bold text-gray-800 mb-4">Líneas de Detalle</p>
+          <div className="space-y-3">
+            {lines.map((l, idx) => (
+              <div key={l.id} className="flex gap-3 items-end">
+                <div className="flex-1">
+                  <p className="text-xs text-gray-400 mb-1">Descripción</p>
+                  <input
+                    className={inp}
+                    placeholder="Ej: Primer pago (50%)"
+                    value={l.description}
+                    onChange={e => updLine(l.id, { description: e.target.value })}
+                  />
+                </div>
+                <div className="w-20">
+                  <p className="text-xs text-gray-400 mb-1">Cantidad</p>
+                  <input
+                    type="number"
+                    min={1}
+                    className={inp}
+                    value={l.qty || 1}
+                    onChange={e => updLine(l.id, { qty: parseInt(e.target.value) || 1 })}
+                  />
+                </div>
+                <div className="w-32">
+                  <p className="text-xs text-gray-400 mb-1">Precio Unitario</p>
+                  <input
+                    type="number"
+                    min={0}
+                    step={10}
+                    className={inp}
+                    value={l.unitPrice || ''}
+                    placeholder="$"
+                    onChange={e => updLine(l.id, { unitPrice: parseFloat(e.target.value) || 0 })}
+                  />
+                </div>
+                <div className="w-24 text-right">
+                  <p className="text-xs text-gray-400 mb-1">Subtotal</p>
+                  <p className="text-lg font-bold text-orange-600">{formatCurrency(l.qty * l.unitPrice)}</p>
+                </div>
                 {lines.length > 1 && (
-                  <button onClick={() => removeLine(l.id)} className="text-xs text-red-400 hover:text-red-600">✕</button>
+                  <button
+                    onClick={() => removeLine(l.id)}
+                    className="text-red-400 hover:text-red-600 pb-1"
+                  >
+                    <Trash2 size={18} />
+                  </button>
                 )}
               </div>
-            </div>
-
-            {/* Vehículo */}
-            <div className="grid grid-cols-2 gap-2">
-              {(Object.keys(VEHICLE_LABELS) as VehicleKind[]).map(v => (
-                <button key={v} onClick={() => updLine(l.id, { vehicle: v })}
-                  className={`py-3 rounded-xl border-2 text-sm font-semibold transition-all ${
-                    l.vehicle === v ? 'border-orange-500 bg-orange-50 text-orange-700' : 'border-gray-200 text-gray-500 hover:border-gray-300'
-                  }`}>
-                  {v === 'truck' ? '🚚 ' : '🚛 '}{VEHICLE_LABELS[v]}
-                </button>
-              ))}
-            </div>
-
-            {/* Tipo de trabajo */}
-            <div className="grid grid-cols-2 gap-2">
-              {(Object.keys(JOB_LABELS) as JobKind[]).map(j => (
-                <button key={j} onClick={() => updLine(l.id, { job: j })}
-                  className={`py-3 rounded-xl border-2 text-sm font-semibold transition-all ${
-                    l.job === j ? 'border-orange-500 bg-orange-50 text-orange-700' : 'border-gray-200 text-gray-500 hover:border-gray-300'
-                  }`}>
-                  {JOB_LABELS[j]}
-                </button>
-              ))}
-            </div>
-
-            {/* Largo */}
-            <div className="grid grid-cols-2 gap-3 items-end">
-              <div>
-                <p className="text-xs text-gray-400 mb-1">Largo del vehículo (ft)</p>
-                <input type="number" min={0} step={0.5} className={inp}
-                  value={l.L || ''} placeholder="ej. 20"
-                  onChange={e => updLine(l.id, { L: parseFloat(e.target.value) || 0 })} />
-              </div>
-              <div className="text-sm text-gray-500 pb-2">
-                {l.L > 0 && <>= <span className="font-semibold text-gray-700">{l.sqft} sq ft</span> <span className="text-xs text-gray-400">(alto fijo {FIXED_HEIGHT} ft)</span></>}
-              </div>
-            </div>
-
-            {/* Descripción */}
-            <input className={inp} placeholder="Descripción / notas del vehículo (opcional)"
-              value={l.description}
-              onChange={e => updLine(l.id, { description: e.target.value })} />
+            ))}
           </div>
-        ))}
-
-        <button onClick={() => setLines(p => [...p, newLine()])}
-          className="w-full py-3 rounded-xl border-2 border-dashed border-gray-300 text-sm font-semibold text-gray-500 hover:border-orange-400 hover:text-orange-600 flex items-center justify-center gap-2">
-          <Plus size={16} /> Agregar otro vehículo
-        </button>
+          <button
+            onClick={() => setLines(p => [...p, newLine()])}
+            className="mt-4 w-full py-2 rounded-lg border-2 border-dashed border-gray-300 text-sm font-semibold text-gray-500 hover:border-orange-400 hover:text-orange-600 flex items-center justify-center gap-2"
+          >
+            <Plus size={16} /> Agregar línea
+          </button>
+        </div>
 
         {/* ── Descuento ── */}
         <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-3">
@@ -310,24 +326,24 @@ export default function NewQuotePage() {
         {/* ── Totales ── */}
         <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-2">
           <div className="flex justify-between text-sm text-gray-600">
-            <span>Subtotal</span><span>{formatCurrency(totals.subtotal)}</span>
+            <span>Subtotal</span><span>{formatCurrency(subtotal)}</span>
           </div>
-          {totals.discountAmount > 0 && (
+          {discountAmount > 0 && (
             <div className="flex justify-between text-sm text-green-600 font-semibold">
               <span>Descuento{discType === 'percent' ? ` (${discValue}%)` : ''}</span>
-              <span>− {formatCurrency(totals.discountAmount)}</span>
+              <span>− {formatCurrency(discountAmount)}</span>
             </div>
           )}
           <div className="flex justify-between text-sm text-gray-600">
-            <span>Tax NC (6.75%)</span><span>{formatCurrency(totals.tax)}</span>
+            <span>Tax NC (6.75%)</span><span>{formatCurrency(tax)}</span>
           </div>
           <div className="flex justify-between text-lg font-bold text-gray-900 border-t border-gray-100 pt-2">
-            <span>Total</span><span>{formatCurrency(totals.total)}</span>
+            <span>Total</span><span>{formatCurrency(total)}</span>
           </div>
           <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 flex justify-between items-center mt-2">
             <div className="text-sm">
-              <p className="font-semibold text-gray-800">Depósito 50%: {formatCurrency(totals.deposit)}</p>
-              <p className="text-xs text-gray-500">Balance al terminar: {formatCurrency(totals.balance)}</p>
+              <p className="font-semibold text-gray-800">Depósito 50%: {formatCurrency(deposit)}</p>
+              <p className="text-xs text-gray-500">Balance al terminar: {formatCurrency(balance)}</p>
             </div>
           </div>
         </div>
