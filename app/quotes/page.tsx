@@ -8,7 +8,7 @@ import { Quote } from '@/types'
 import { formatCurrency } from '@/lib/quote-engine'
 import Link from 'next/link'
 import {
-  Plus, FileText, ChevronDown, ChevronUp, ExternalLink, FolderPlus
+  Plus, FileText, ChevronDown, ChevronUp, ExternalLink, FolderPlus, Trash2
 } from 'lucide-react'
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
@@ -72,6 +72,12 @@ export default function QuotesPage() {
   async function updateStatus(id: string, status: string) {
     await supabase.from('quotes').update({ status }).eq('id', id)
     setQuotes(qs => qs.map(q => q.id === id ? { ...q, status: status as any } : q))
+  }
+
+  async function deleteQuote(id: string) {
+    if (!confirm('¿Borrar esta cotización? No se puede deshacer.')) return
+    await supabase.from('quotes').delete().eq('id', id)
+    loadQuotes()
   }
 
   const filtered = filter === 'all' ? quotes : quotes.filter(q => q.status === filter)
@@ -299,6 +305,14 @@ export default function QuotesPage() {
                             → Project
                           </button>
                         )}
+
+                        {/* Delete */}
+                        <button
+                          onClick={e => { e.stopPropagation(); deleteQuote(quote.id) }}
+                          className="flex items-center gap-1.5 text-sm bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1.5 rounded-lg transition-colors">
+                          <Trash2 size={13}/>
+                          Borrar
+                        </button>
                       </div>
 
                       {/* Notes */}
