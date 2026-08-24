@@ -21,28 +21,59 @@ function newLine(): LineItem {
   }
 }
 
+// ── CALCULADORA 1: Costo Proveedor × Margen ──
+const VINYL_PRICES = {
+  'cast-30-250': { name: 'Vinilo Cast impreso + laminado (30-250 ft²)', price: 8.50 },
+  'cast-250plus': { name: 'Vinilo Cast impreso + laminado (>250 ft²)', price: 7.50 },
+  'reflective': { name: 'Vinilo reflectivo impreso', price: 22.00 },
+  'sticker-printed': { name: 'Sticker vinilo impreso + laminado', price: 10.00 },
+  'sticker-cast': { name: 'Sticker vinilo fundido + laminado', price: 15.00 },
+  'sticker-reflective': { name: 'Sticker vinilo reflectivo', price: 25.00 },
+}
+
+// ── CALCULADORA 2: Full Wrap Trailer/Truck ──
+const calcFullWrapSqft = (length: number): number => {
+  return (length * 8) * 2 + (8 * 8) * 2 // (L × 8) × 2 + (8 × 8) × 2
+}
+
+const calcFullWrapPrice = (sqft: number, jobType: 'wrap' | 'sticker', vehicleType: 'truck' | 'trailer'): number => {
+  const baseRate = jobType === 'wrap' ? 8.50 : 13.50
+  const extraRate = vehicleType === 'truck' ? 4 : 2.93
+  return (sqft * baseRate) + (sqft * extraRate)
+}
+
 export default function NewQuotePage() {
   const router = useRouter()
 
   // ── Clients ──
-  const [clients, setClients]       = useState<ClientRow[]>([])
-  const [clientId, setClientId]     = useState<string>('')
+  const [clients, setClients] = useState<ClientRow[]>([])
+  const [clientId, setClientId] = useState<string>('')
   const [clientSearch, setClientSearch] = useState('')
   const [showDropdown, setShowDropdown] = useState(false)
   const [creatingClient, setCreatingClient] = useState(false)
-  const [newClientName, setNewClientName]   = useState('')
+  const [newClientName, setNewClientName] = useState('')
   const [newClientPhone, setNewClientPhone] = useState('')
+
+  // ── Calculator 1: Costo Proveedor ──
+  const [calcVinyl, setCalcVinyl] = useState<string>('cast-30-250')
+  const [calcSqft, setCalcSqft] = useState<number>(0)
+  const [calcMargin, setCalcMargin] = useState<number>(25)
+
+  // ── Calculator 2: Full Wrap ──
+  const [fullWrapLength, setFullWrapLength] = useState<number>(0)
+  const [fullWrapJob, setFullWrapJob] = useState<'wrap' | 'sticker'>('wrap')
+  const [fullWrapVehicle, setFullWrapVehicle] = useState<'truck' | 'trailer'>('truck')
 
   // ── Lines ──
   const [lines, setLines] = useState<LineItem[]>([newLine()])
   const [notes, setNotes] = useState('')
 
   // ── Discount ──
-  const [discType, setDiscType]   = useState<'none' | 'percent' | 'amount'>('none')
+  const [discType, setDiscType] = useState<'none' | 'percent' | 'amount'>('none')
   const [discValue, setDiscValue] = useState<number>(0)
 
   const [saving, setSaving] = useState(false)
-  const [error, setError]   = useState('')
+  const [error, setError] = useState('')
 
   useEffect(() => { loadClients() }, [])
 
@@ -91,19 +122,28 @@ export default function NewQuotePage() {
   const subtotalAfterDisc = subtotal - discountAmount
   const tax = subtotalAfterDisc * TAX_RATE
   const total = subtotalAfterDisc + tax
-  const deposit = total * 0.5  // 50% por defecto
+  const deposit = total * 0.5
   const balance = total - deposit
+
+  // ── Calculator 1 Results ──
+  const vinylInfo = VINYL_PRICES[calcVinyl as keyof typeof VINYL_PRICES]
+  const calcCost = calcSqft * vinylInfo.price
+  const calcPrice = calcCost * (1 + calcMargin / 100)
+
+  // ── Calculator 2 Results ──
+  const fullWrapSqft = calcFullWrapSqft(fullWrapLength)
+  const fullWrapPrice = fullWrapLength > 0 ? calcFullWrapPrice(fullWrapSqft, fullWrapJob, fullWrapVehicle) : 0
 
   // ── Save ──
   async function saveQuote(status: 'draft' | 'sent') {
-    if (!clientId)          { setError('Selecciona o crea un cliente primero'); return }
-    if (!lines.some(l => l.description.trim() && l.unitPrice > 0)) { 
-      setError('Agrega al menos una línea con descripción y precio'); 
-      return 
+    if (!clientId) { setError('Selecciona o crea un cliente primero'); return }
+    if (!lines.some(l => l.description.trim() && l.unitPrice > 0)) {
+      setError('Agrega al menos una línea con descripción y precio')
+      return
     }
     setSaving(true); setError('')
 
-    const qNum    = await generateQuoteNumber()
+    const qNum = await generateQuoteNumber()
     const expires = new Date(Date.now() + 30 * 86400000).toISOString()
 
     const items: any[] = lines
@@ -117,7 +157,6 @@ export default function NewQuotePage() {
         subtotal: l.qty * l.unitPrice,
       }))
 
-    // Discount stored inside items
     if (discountAmount > 0) {
       items.push({
         type: 'discount',
@@ -168,7 +207,7 @@ export default function NewQuotePage() {
         </button>
       </div>
 
-      <div className="max-w-3xl mx-auto p-6 space-y-6">
+      <div className="max-w-4xl mx-auto p-6 space-y-6">
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">{error}</div>
         )}
@@ -223,6 +262,67 @@ export default function NewQuotePage() {
                   </button>
                 </div>
               )}
+            </div>
+          )}
+        </div>
+
+        {/* ── CALCULADORA 1: Costo Proveedor × Margen ── */}
+        <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-5 space-y-4">
+          <p className="font-bold text-blue-900">📊 Costo Proveedor × Margen (REFERENCIA)</p>
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <p className="text-xs text-blue-600 font-bold mb-1">MATERIAL</p>
+              <select value={calcVinyl} onChange={e => setCalcVinyl(e.target.value)} className={inp}>
+                {Object.entries(VINYL_PRICES).map(([k, v]) => (
+                  <option key={k} value={k}>{v.name} (${v.price})</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <p className="text-xs text-blue-600 font-bold mb-1">SQ FT</p>
+              <input type="number" min={0} step={10} value={calcSqft || ''} onChange={e => setCalcSqft(parseFloat(e.target.value) || 0)} className={inp} />
+            </div>
+            <div>
+              <p className="text-xs text-blue-600 font-bold mb-1">MARGEN (%)</p>
+              <input type="number" min={0} max={200} step={5} value={calcMargin || ''} onChange={e => setCalcMargin(parseFloat(e.target.value) || 0)} className={inp} />
+            </div>
+          </div>
+          {calcSqft > 0 && (
+            <div className="bg-white rounded-lg p-3 text-sm space-y-1">
+              <div className="flex justify-between"><span className="text-gray-600">Costo proveedor:</span><span className="font-bold">{formatCurrency(calcCost)}</span></div>
+              <div className="flex justify-between"><span className="text-gray-600">Margen ({calcMargin}%):</span><span className="font-bold text-green-600">+{formatCurrency(calcPrice - calcCost)}</span></div>
+              <div className="flex justify-between border-t pt-1"><span className="font-bold">Precio final:</span><span className="text-lg font-bold text-blue-600">{formatCurrency(calcPrice)}</span></div>
+            </div>
+          )}
+        </div>
+
+        {/* ── CALCULADORA 2: Full Wrap Trailer/Truck ── */}
+        <div className="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-xl p-5 space-y-4">
+          <p className="font-bold text-green-900">🚚 Full Wrap Trailer / Truck (REFERENCIA)</p>
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <p className="text-xs text-green-600 font-bold mb-1">LARGO (ft)</p>
+              <input type="number" min={0} step={1} value={fullWrapLength || ''} onChange={e => setFullWrapLength(parseFloat(e.target.value) || 0)} className={inp} />
+            </div>
+            <div>
+              <p className="text-xs text-green-600 font-bold mb-1">TIPO DE TRABAJO</p>
+              <select value={fullWrapJob} onChange={e => setFullWrapJob(e.target.value as 'wrap' | 'sticker')} className={inp}>
+                <option value="wrap">Full Wrap</option>
+                <option value="sticker">Sticker/Lettering</option>
+              </select>
+            </div>
+            <div>
+              <p className="text-xs text-green-600 font-bold mb-1">TIPO DE VEHÍCULO</p>
+              <select value={fullWrapVehicle} onChange={e => setFullWrapVehicle(e.target.value as 'truck' | 'trailer')} className={inp}>
+                <option value="truck">Truck</option>
+                <option value="trailer">Trailer</option>
+              </select>
+            </div>
+          </div>
+          {fullWrapLength > 0 && (
+            <div className="bg-white rounded-lg p-3 text-sm space-y-1">
+              <div className="flex justify-between"><span className="text-gray-600">Sq Ft:</span><span className="font-bold">{fullWrapSqft}</span></div>
+              <div className="flex justify-between border-t pt-1"><span className="font-bold">Precio estimado:</span><span className="text-lg font-bold text-green-600">{formatCurrency(fullWrapPrice)}</span></div>
             </div>
           )}
         </div>
@@ -289,9 +389,9 @@ export default function NewQuotePage() {
 
         {/* ── Descuento ── */}
         <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-3">
-          <p className="font-bold text-gray-800 flex items-center gap-2"><Tag size={16} className="text-orange-500"/> Descuento</p>
+          <p className="font-bold text-gray-800 flex items-center gap-2"><Tag size={16} className="text-orange-500" /> Descuento</p>
           <div className="grid grid-cols-3 gap-2">
-            {([['none','Sin descuento'],['percent','Porcentaje %'],['amount','Monto $']] as const).map(([t, label]) => (
+            {([['none', 'Sin descuento'], ['percent', 'Porcentaje %'], ['amount', 'Monto $']] as const).map(([t, label]) => (
               <button key={t} onClick={() => setDiscType(t)}
                 className={`py-2.5 rounded-xl border-2 text-xs font-semibold transition-all ${
                   discType === t ? 'border-orange-500 bg-orange-50 text-orange-700' : 'border-gray-200 text-gray-500 hover:border-gray-300'
