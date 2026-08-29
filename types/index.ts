@@ -1,54 +1,88 @@
-// Re-export all types for backward compatibility
+// Tipos alineados con el schema REAL y en vivo de Supabase (project_id: oazojpaydvwsyzjnnvdt).
+// No confundir con supabase/schema.sql, que quedó desactualizado — ver notas del proyecto.
+// Estos tipos reflejan exactamente el mismo modelo ya probado en producción en el Artifact
+// (Airtable base appZkSxRM0L7TUtmI, tabla Quotes_Invoices) para que la lógica de negocio
+// (Ganancias, Marcar cobrada, descuentos) se comporte igual en ambos lados.
 
 export interface Client {
   id: string
   name: string
-  email?: string | null
+  contact_name?: string | null
   phone?: string | null
-  company?: string | null
+  email?: string | null
+  address?: string | null
+  industry?: string | null
   notes?: string | null
+  status?: string | null
   created_at?: string
   updated_at?: string
 }
+
+// Mismos valores que el campo "Status" (singleSelect) en Airtable.
+export type QuoteStatus = 'Draft' | 'Sent' | 'Approved' | 'Paid' | 'Overdue' | 'Cancelled'
+export type DocType = 'Quote' | 'Invoice'
+export type DiscountType = 'None' | 'Percent' | 'Amount'
 
 export interface Quote {
   id: string
+  doc_number: string
+  doc_type: DocType
   client_id?: string | null
-  quote_number: string
-  items: any[]
-  subtotal: number
+  project_desc?: string | null
+  date_issued?: string | null
+  due_date?: string | null
+  status: QuoteStatus
   tax_rate: number
-  tax_amount: number
-  total: number
-  status: 'draft' | 'sent' | 'approved' | 'rejected'
-  valid_days: number
+  deposit?: number | null
   notes?: string | null
-  sent_at?: string | null
-  expires_at?: string | null
-  accepted_at?: string | null
-  project_id?: string | null
-  deposit_amount?: number
-  balance?: number
+  subtotal: number
+  tax_amt: number
+  total: number
+  discount_type: DiscountType
+  discount_value?: number | null
+  discount_amount: number
+  final_total: number
+  paid_date?: string | null
   created_at?: string
   updated_at?: string
   client?: Client
+  line_items?: LineItem[]
 }
 
-export type ServiceType = string
-export type VehicleType = string
-export type Complexity = 'simple' | 'medium' | 'complex'
-export type Material = '3M' | 'Avery' | 'GF'
-
-export interface QuoteItem {
-  service_type: string
-  vehicle_type: string
-  size_category: string
-  complexity: string
-  material: string
+export interface LineItem {
+  id: string
+  quote_id: string
   description: string
-  quantity: number
-  unit_price: number
-  sq_ft?: number
-  subtotal: number
-  discount_pct?: number
+  qty: number
+  price: number
+  sort_order: number
+  created_at?: string
+}
+
+export interface Expense {
+  id: string
+  expense_date: string
+  description?: string | null
+  vendor?: string | null
+  category: string
+  amount: number
+  payment_method?: string | null
+  related_project?: string | null
+  has_receipt?: boolean
+  receipt_url?: string | null
+  ocr_raw?: string | null
+  ocr_confidence?: string | null
+  notes?: string | null
+  created_at?: string
+}
+
+export interface Appointment {
+  id: string
+  title: string
+  start_time: string
+  end_time: string
+  location?: string | null
+  notes?: string | null
+  client_id?: string | null
+  created_at?: string
 }
