@@ -14,7 +14,7 @@ export default function ClientsPage() {
   const [search, setSearch] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState<Client | null>(null)
-  const [form, setForm] = useState({ name: '', email: '', phone: '', company: '', notes: '' })
+  const [form, setForm] = useState({ name: '', email: '', phone: '', contact_name: '', notes: '' })
   const [saving, setSaving] = useState(false)
 
   useEffect(() => { loadClients() }, [])
@@ -28,13 +28,13 @@ export default function ClientsPage() {
 
   function openNew() {
     setEditing(null)
-    setForm({ name: '', email: '', phone: '', company: '', notes: '' })
+    setForm({ name: '', email: '', phone: '', contact_name: '', notes: '' })
     setShowForm(true)
   }
 
   function openEdit(c: Client) {
     setEditing(c)
-    setForm({ name: c.name, email: c.email || '', phone: c.phone || '', company: c.company || '', notes: (c as any).notes || '' })
+    setForm({ name: c.name, email: c.email || '', phone: c.phone || '', contact_name: c.contact_name || '', notes: (c as any).notes || '' })
     setShowForm(true)
   }
 
@@ -42,9 +42,9 @@ export default function ClientsPage() {
     if (!form.name.trim()) return
     setSaving(true)
     if (editing) {
-      await supabase.from('clients').update({ name: form.name, email: form.email || null, phone: form.phone || null, company: form.company || null, notes: form.notes || null }).eq('id', editing.id)
+      await supabase.from('clients').update({ name: form.name, email: form.email || null, phone: form.phone || null, contact_name: form.contact_name || null, notes: form.notes || null }).eq('id', editing.id)
     } else {
-      await supabase.from('clients').insert({ name: form.name, email: form.email || null, phone: form.phone || null, company: form.company || null, notes: form.notes || null })
+      await supabase.from('clients').insert({ name: form.name, email: form.email || null, phone: form.phone || null, contact_name: form.contact_name || null, notes: form.notes || null })
     }
     setSaving(false)
     setShowForm(false)
@@ -59,7 +59,7 @@ export default function ClientsPage() {
 
   const filtered = clients.filter(c =>
     c.name.toLowerCase().includes(search.toLowerCase()) ||
-    (c.company || '').toLowerCase().includes(search.toLowerCase()) ||
+    (c.contact_name || '').toLowerCase().includes(search.toLowerCase()) ||
     (c.email || '').toLowerCase().includes(search.toLowerCase())
   )
 
@@ -78,7 +78,7 @@ export default function ClientsPage() {
 
         <div className="relative mb-6">
           <Search size={18} className="absolute left-4 top-3.5 text-gray-400" />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name, company or email..."
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name, contact or email..."
             className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-orange-400 text-sm" />
         </div>
 
@@ -104,7 +104,7 @@ export default function ClientsPage() {
                   </div>
                 </div>
                 <h3 className="font-semibold text-gray-900 mb-1">{c.name}</h3>
-                {c.company && <p className="text-gray-500 text-sm flex items-center gap-1.5 mb-1"><Building2 size={13} />{c.company}</p>}
+                {c.contact_name && <p className="text-gray-500 text-sm flex items-center gap-1.5 mb-1"><Building2 size={13} />{c.contact_name}</p>}
                 {c.email && <p className="text-gray-500 text-sm flex items-center gap-1.5 mb-1"><Mail size={13} />{c.email}</p>}
                 {c.phone && <p className="text-gray-500 text-sm flex items-center gap-1.5"><Phone size={13} />{c.phone}</p>}
               </div>
@@ -120,7 +120,7 @@ export default function ClientsPage() {
             <div className="space-y-4">
               {[
                 { label: 'Full Name *', key: 'name', placeholder: 'John Smith' },
-                { label: 'Company', key: 'company', placeholder: 'ABC Corp' },
+                { label: 'Contact Person', key: 'contact_name', placeholder: 'Name of contact (optional)' },
                 { label: 'Email', key: 'email', placeholder: 'john@example.com' },
                 { label: 'Phone', key: 'phone', placeholder: '(919) 555-0100' },
               ].map(f => (
