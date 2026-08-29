@@ -3,10 +3,10 @@ import type { NextRequest } from 'next/server'
 
 const PUBLIC_PATHS = ['/login', '/_next', '/favicon.ico', '/api']
 
-// TEMPORARILY DISABLED (2026-08-24): login gate turned off while we test
-// the app end-to-end. Re-enable by restoring the auth-cookie check below
-// before this goes out to anyone besides the owner testing it.
-const LOGIN_ENABLED = false
+// Re-enabled (2026-08-29, Ronda 7): app verified working end-to-end, login
+// now gates real production access via the email-code flow (see
+// app/login/page.tsx and app/api/auth/send-code|verify-code).
+const LOGIN_ENABLED = true
 
 export function proxy(req: NextRequest) {
   if (!LOGIN_ENABLED) {
