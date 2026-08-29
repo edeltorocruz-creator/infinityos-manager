@@ -5,7 +5,7 @@ import { useEffect, useState, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { formatCurrency, WARRANTY_TEXT, TERMS_TEXT, INCLUDED_CONCEPTS, STATUS_CONFIG, STATUS_OPTIONS, canMarkPaid } from '@/lib/quote-engine'
-import { ArrowLeft, Printer, FileText, CheckCircle2, Trash2 } from 'lucide-react'
+import { ArrowLeft, Printer, FileText, CheckCircle2, Trash2, Paperclip, Loader, X } from 'lucide-react'
 import { useReactToPrint } from 'react-to-print'
 
 function formatDate(iso?: string | null) {
@@ -23,6 +23,9 @@ export default function QuoteDetailPage() {
   const [loading,    setLoading]    = useState(true)
   const [updating,   setUpdating]   = useState(false)
   const [confirmPay, setConfirmPay] = useState(false)
+  const [attaching,  setAttaching]  = useState(false)
+  const [attachError, setAttachError] = useState('')
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handlePrint = useReactToPrint({ contentRef: printRef })
 
@@ -60,6 +63,40 @@ export default function QuoteDetailPage() {
     setQuote((q: any) => ({ ...q, status: 'Paid', paid_date: paidDate }))
     setConfirmPay(false)
     setUpdating(false)
+  }
+
+  // ── Attach a vendor/reference PDF or photo to this quote (receipts get their own
+  // scan-and-store flow in Expenses; this is the equivalent for quote-side paperwork
+  // — e.g. a supplier's material quote, a signed copy, etc.). ──
+  async function handleAttachFile(file: File) {
+    if (!file) return
+    setAttaching(true)
+    setAttachError('')
+    try {
+      const ext = file.name.split('.').pop()?.toLowerCase() || 'pdf'
+      const filename = `quote-${id}-${Date.now()}.${ext}`
+      const { error: uploadError } = await supabase.storage
+        .from('quote-files')
+        .upload(filename, file, { contentType: file.type, upsert: false })
+      if (uploadError) throw new Error(uploadError.message)
+
+      const { data: urlData } = supabase.storage.from('quote-files').getPublicUrl(filename)
+      await supabase.from('quotes').update({
+        attachment_url: urlData.publicUrl,
+        attachment_name: file.name,
+      }).eq('id', id)
+      setQuote((q: any) => ({ ...q, attachment_url: urlData.publicUrl, attachment_name: file.name }))
+    } catch (err: any) {
+      setAttachError(err.message || 'Upload failed')
+    } finally {
+      setAttaching(false)
+    }
+  }
+
+  async function removeAttachment() {
+    if (!confirm('¿Quitar el archivo adjunto de esta cotización?')) return
+    await supabase.from('quotes').update({ attachment_url: null, attachment_name: null }).eq('id', id)
+    setQuote((q: any) => ({ ...q, attachment_url: null, attachment_name: null }))
   }
 
   async function deleteQuote() {
@@ -135,6 +172,32 @@ export default function QuoteDetailPage() {
               <Trash2 size={14}/> Eliminar
             </button>
           </div>
+        </div>
+
+        {/* Attachment (vendor quote PDF / photo) */}
+        <div className="mb-5 print:hidden">
+          <input ref={fileInputRef} type="file" accept="image/*,application/pdf" className="hidden"
+            onChange={e => { const f = e.target.files?.[0]; if (f) handleAttachFile(f) }}/>
+          {quote.attachment_url ? (
+            <div className="flex items-center gap-3 bg-white border border-gray-100 rounded-xl px-4 py-3 shadow-sm">
+              <Paperclip size={16} className="text-orange-500 flex-shrink-0"/>
+              <a href={quote.attachment_url} target="_blank" rel="noreferrer"
+                className="text-sm text-blue-600 hover:underline flex-1 truncate">
+                {quote.attachment_name || 'Archivo adjunto'}
+              </a>
+              <button onClick={() => fileInputRef.current?.click()} disabled={attaching}
+                className="text-xs text-gray-500 hover:text-gray-700 font-semibold">Reemplazar</button>
+              <button onClick={removeAttachment} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg">
+                <X size={14}/>
+              </button>
+            </div>
+          ) : (
+            <button onClick={() => fileInputRef.current?.click()} disabled={attaching}
+              className="flex items-center gap-2 bg-white border border-dashed border-gray-300 hover:border-orange-400 hover:bg-orange-50/30 text-gray-500 hover:text-orange-600 px-4 py-3 rounded-xl text-sm font-medium w-full transition-colors">
+              {attaching ? <><Loader size={14} className="animate-spin"/>Subiendo...</> : <><Paperclip size={14}/>Adjuntar PDF o foto (cotización de proveedor, referencia, etc.)</>}
+            </button>
+          )}
+          {attachError && <p className="text-xs text-red-600 mt-1.5">{attachError}</p>}
         </div>
 
         {quote.status === 'Paid' && quote.paid_date && (
