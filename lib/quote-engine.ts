@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { DiscountType, QuoteStatus } from '@/types'
 
 // ─── BUSINESS CONSTANTS ───────────────────────────────────────────────────────
 export const TAX_RATE     = 0.0675   // NC 6.75%
@@ -45,17 +46,33 @@ export function calcQuoteLine(vehicle: VehicleKind, job: JobKind, L: number) {
   return { sqft, subtotal }
 }
 
-// ─── DISCOUNT ─────────────────────────────────────────────────────────────────
-export type DiscountType = 'none' | 'percent' | 'amount'
+// ─── ESTADOS — mismos valores exactos que el campo "Status" en Airtable ──────
+export const STATUS_OPTIONS: QuoteStatus[] = ['Draft', 'Sent', 'Approved', 'Paid', 'Overdue', 'Cancelled']
 
+export const STATUS_CONFIG: Record<QuoteStatus, { label: string; color: string }> = {
+  Draft:     { label: 'Draft',     color: 'bg-gray-100 text-gray-700' },
+  Sent:      { label: 'Sent',      color: 'bg-blue-100 text-blue-700' },
+  Approved:  { label: 'Approved',  color: 'bg-purple-100 text-purple-700' },
+  Paid:      { label: 'Paid',      color: 'bg-green-100 text-green-700' },
+  Overdue:   { label: 'Overdue',   color: 'bg-red-100 text-red-700' },
+  Cancelled: { label: 'Cancelled', color: 'bg-gray-100 text-gray-400' },
+}
+
+// Una cotización cuenta como "abierta para cobrar" si no está ya Paid ni Cancelled —
+// mismo criterio usado en el Artifact para mostrar el botón "Marcar cobrada".
+export function canMarkPaid(status: QuoteStatus): boolean {
+  return status !== 'Paid' && status !== 'Cancelled'
+}
+
+// ─── DESCUENTO — mismos valores que "Discount Type" en Airtable (None/Percent/Amount) ─
 export interface Discount {
   type: DiscountType
   value: number
 }
 
 export function calcDiscountAmount(subtotal: number, d?: Discount): number {
-  if (!d || d.type === 'none' || !d.value || d.value <= 0) return 0
-  const amt = d.type === 'percent' ? subtotal * (d.value / 100) : d.value
+  if (!d || d.type === 'None' || !d.value || d.value <= 0) return 0
+  const amt = d.type === 'Percent' ? subtotal * (d.value / 100) : d.value
   return Math.min(Math.round(amt * 100) / 100, subtotal)
 }
 
@@ -70,6 +87,10 @@ export const INCLUDED_CONCEPTS: string[] = [
 ]
 
 // ─── TOTALS ───────────────────────────────────────────────────────────────────
+// Replica exacta de la fórmula ya probada en el Artifact:
+//   Total = (Subtotal - Descuento) + Tax   donde Tax = (Subtotal - Descuento) × TAX_RATE
+//   Final Total = Total (después de descuento) — este es el monto que cuenta como
+//   ingreso una vez la cotización se marca Paid (menos el tax, que no es ingreso real).
 export function calcTotals(
   lines: { subtotal: number }[],
   discount?: Discount,
@@ -81,21 +102,21 @@ export function calcTotals(
   const total    = Math.round((taxable + tax) * 100) / 100
   const deposit  = Math.round(total * DEPOSIT_RATE * 100) / 100
   const balance  = Math.round((total - deposit) * 100) / 100
-  return { subtotal, discountAmount, taxable, tax, total, deposit, balance }
+  return { subtotal, discountAmount, taxable, tax, total, finalTotal: total, deposit, balance }
 }
 
-// ─── QUOTE NUMBER — sequential IWD-001 ────────────────────────────────────────
-export async function generateQuoteNumber(): Promise<string> {
+// ─── DOC NUMBER — secuencial Q-0001, mismo formato que el Artifact/Airtable ──
+export async function generateDocNumber(): Promise<string> {
   const { count } = await supabase
     .from('quotes')
     .select('*', { count: 'exact', head: true })
-  const next = ((count ?? 0) + 1).toString().padStart(3, '0')
-  return `IWD-${next}`
+  const next = ((count ?? 0) + 1).toString().padStart(4, '0')
+  return `Q-${next}`
 }
 
 // ─── UTILS ────────────────────────────────────────────────────────────────────
 export function formatCurrency(n: number): string {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n)
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n || 0)
 }
 
 export function formatDate(d?: Date): string {
@@ -115,7 +136,7 @@ CANCELLATION: Deposits are non-refundable once materials have been ordered or de
 VEHICLE CONDITION: Customer is responsible for ensuring vehicle is clean and in good condition prior to installation.
 CHANGES: Any scope changes must be approved in writing and may affect pricing and timeline.`
 
-// ─── LINE TYPE ────────────────────────────────────────────────────────────────
+// ─── LINE TYPE (calculadoras de referencia en el formulario) ─────────────────
 export interface SimpleLine {
   id: string
   vehicle: VehicleKind
