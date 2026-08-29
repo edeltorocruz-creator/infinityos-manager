@@ -124,8 +124,8 @@ export default function ExpensesPage() {
       const mediaType = file.type as 'image/jpeg' | 'image/png' | 'image/webp'
 
       // 3. Call Claude Vision API — through our own server route, never directly
-      //    from the browser (see app/api/ocr/receipt/route.ts for why).
-      const response = await fetch('/api/ocr/receipt', {
+      //    from the browser (see app/api/scan-document/route.ts for why).
+      const response = await fetch('/api/scan-document', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ base64, mediaType, kind: 'receipt' }),
