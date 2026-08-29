@@ -19,7 +19,9 @@ const NAV_ITEMS = [
   { href: '/calendar',  label: '📅 Calendario' },
 ]
 
-const ADMIN_ITEMS: { href: string; label: string }[] = []
+const ADMIN_ITEMS: { href: string; label: string }[] = [
+  { href: '/settings', label: '⚙️ Ajustes' },
+]
 
 export default function NavSidebar() {
   const pathname = usePathname()
