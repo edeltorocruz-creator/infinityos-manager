@@ -38,11 +38,11 @@ function guessCategory(text: string): string {
 
 interface Expense {
   id: string
-  description: string
+  description: string | null
   amount: number
   category: string
   vendor: string | null
-  date: string
+  expense_date: string
   notes: string | null
   receipt_url: string | null
   ocr_raw: string | null
@@ -87,7 +87,7 @@ export default function ExpensesPage() {
     const { data } = await supabase
       .from('expenses')
       .select('*')
-      .order('date', { ascending: false })
+      .order('expense_date', { ascending: false })
     if (data) setExpenses(data as Expense[])
     setLoading(false)
   }
@@ -231,9 +231,9 @@ If you cannot read a field clearly, use null. For date, default to today if uncl
   function openEdit(e: Expense) {
     setEditing(e)
     setForm({
-      description: e.description, amount: String(e.amount),
+      description: e.description || '', amount: String(e.amount),
       category: e.category, vendor: e.vendor || '',
-      date: e.date, notes: e.notes || ''
+      date: e.expense_date, notes: e.notes || ''
     })
     setOcrPreview(e.receipt_url || null)
     setUploadedUrl(e.receipt_url || null)
@@ -250,9 +250,10 @@ If you cannot read a field clearly, use null. For date, default to today if uncl
       amount: parseFloat(form.amount),
       category: form.category,
       vendor: form.vendor || null,
-      date: form.date,
+      expense_date: form.date,
       notes: form.notes || null,
       receipt_url: uploadedUrl || null,
+      has_receipt: !!uploadedUrl,
       ocr_raw: ocrRaw || null,
       ocr_confidence: ocrState === 'done' ? 'auto' : null,
     }
@@ -276,13 +277,13 @@ If you cannot read a field clearly, use null. For date, default to today if uncl
     loadExpenses()
   }
 
-  const months = [...new Set(expenses.map(e => e.date.slice(0, 7)))].sort().reverse()
+  const months = [...new Set(expenses.map(e => e.expense_date.slice(0, 7)))].sort().reverse()
 
   const filtered = expenses.filter(e => {
-    const matchSearch = e.description.toLowerCase().includes(search.toLowerCase()) ||
+    const matchSearch = (e.description || '').toLowerCase().includes(search.toLowerCase()) ||
       (e.vendor || '').toLowerCase().includes(search.toLowerCase())
     const matchCat = filterCat === 'all' || e.category === filterCat
-    const matchMonth = filterMonth === 'all' || e.date.startsWith(filterMonth)
+    const matchMonth = filterMonth === 'all' || e.expense_date.startsWith(filterMonth)
     return matchSearch && matchCat && matchMonth
   })
 
@@ -392,7 +393,7 @@ If you cannot read a field clearly, use null. For date, default to today if uncl
                   <div className="flex flex-wrap gap-3 mt-0.5 text-xs text-gray-400">
                     <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium">{expense.category}</span>
                     {expense.vendor && <span>{expense.vendor}</span>}
-                    <span>{new Date(expense.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                    <span>{new Date(expense.expense_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                   </div>
                   {expense.notes && <p className="text-xs text-gray-400 italic mt-0.5 truncate">{expense.notes}</p>}
                 </div>
