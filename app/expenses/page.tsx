@@ -123,43 +123,24 @@ export default function ExpensesPage() {
       const base64 = await fileToBase64(file)
       const mediaType = file.type as 'image/jpeg' | 'image/png' | 'image/webp'
 
-      // 3. Call Claude Vision API
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
+      // 3. Call Claude Vision API — through our own server route, never directly
+      //    from the browser (see app/api/ocr/receipt/route.ts for why).
+      const response = await fetch('/api/ocr/receipt', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1000,
-          system: `You are an expense receipt analyzer for Infinity Wrap Design, a vehicle wrap company in North Carolina. Extract information from receipts and return ONLY valid JSON, no markdown, no explanation.`,
-          messages: [{
-            role: 'user',
-            content: [
-              {
-                type: 'image',
-                source: { type: 'base64', media_type: mediaType, data: base64 }
-              },
-              {
-                type: 'text',
-                text: `Analyze this receipt and extract the data. Return ONLY this JSON structure:
-{
-  "vendor": "store or company name",
-  "amount": 0.00,
-  "date": "YYYY-MM-DD",
-  "description": "brief description of what was purchased (max 60 chars)",
-  "items": ["item1", "item2"],
-  "category_hint": "one word describing the type: materials, fuel, supplies, equipment, food, or other",
-  "confidence": "high|medium|low",
-  "notes": "any relevant details"
-}
-If you cannot read a field clearly, use null. For date, default to today if unclear. Amount must be a number.`
-              }
-            ]
-          }]
-        })
+        body: JSON.stringify({ base64, mediaType, kind: 'receipt' }),
       })
 
       const data = await response.json()
-      const text = data.content?.find((c: any) => c.type === 'text')?.text || ''
+      if (!response.ok) {
+        // Not configured (no ANTHROPIC_API_KEY yet) or scan failed — the receipt is
+        // already uploaded and attached, so fall back to manual entry instead of
+        // losing the upload.
+        setOcrState('done')
+        setOcrError(data.error || 'AI scan unavailable — enter details manually.')
+        return
+      }
+      const text = data.text || ''
       setOcrRaw(text)
 
       // 4. Parse and auto-fill form
