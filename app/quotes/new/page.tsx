@@ -4,10 +4,10 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { TAX_RATE, formatCurrency, generateQuoteNumber } from '@/lib/quote-engine'
+import { TAX_RATE, formatCurrency, generateDocNumber } from '@/lib/quote-engine'
 import { ArrowLeft, Save, Plus, Send, Tag, Trash2 } from 'lucide-react'
 
-interface ClientRow { id: string; name: string; phone?: string | null; company?: string | null }
+interface ClientRow { id: string; name: string; phone?: string | null; contact_name?: string | null }
 interface LineItem { id: string; description: string; qty: number; unitPrice: number }
 
 const inp = "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-orange-400"
@@ -78,7 +78,7 @@ export default function NewQuotePage() {
   useEffect(() => { loadClients() }, [])
 
   async function loadClients() {
-    const { data } = await supabase.from('clients').select('id,name,phone,company').order('name')
+    const { data } = await supabase.from('clients').select('id,name,phone,contact_name').order('name')
     setClients(data || [])
   }
 
@@ -86,7 +86,7 @@ export default function NewQuotePage() {
     const s = clientSearch.toLowerCase()
     return clients.filter(c =>
       c.name.toLowerCase().includes(s) ||
-      (c.company || '').toLowerCase().includes(s) ||
+      (c.contact_name || '').toLowerCase().includes(s) ||
       (c.phone || '').includes(s)
     )
   }, [clients, clientSearch])
@@ -134,58 +134,51 @@ export default function NewQuotePage() {
   const fullWrapSqft = calcFullWrapSqft(fullWrapLength)
   const fullWrapPrice = fullWrapLength > 0 ? calcFullWrapPrice(fullWrapSqft, fullWrapJob, fullWrapVehicle) : 0
 
-  // ── Save ──
-  async function saveQuote(status: 'draft' | 'sent') {
+  // ── Save ── Escribe en el schema real de Supabase (mismas columnas que Airtable):
+  // quotes (doc_number, doc_type, status, subtotal, tax_amt, total, discount_*, final_total)
+  // + line_items en su propia tabla (una fila por línea), no como JSON embebido.
+  async function saveQuote(status: 'Draft' | 'Sent') {
     if (!clientId) { setError('Selecciona o crea un cliente primero'); return }
-    if (!lines.some(l => l.description.trim() && l.unitPrice > 0)) {
+    const validLines = lines.filter(l => l.description.trim() && l.unitPrice > 0)
+    if (!validLines.length) {
       setError('Agrega al menos una línea con descripción y precio')
       return
     }
     setSaving(true); setError('')
 
-    const qNum = await generateQuoteNumber()
-    const expires = new Date(Date.now() + 30 * 86400000).toISOString()
-
-    const items: any[] = lines
-      .filter(l => l.description.trim() && l.unitPrice > 0)
-      .map(l => ({
-        type: 'line',
-        label: l.description,
-        description: '',
-        qty: l.qty,
-        unitPrice: l.unitPrice,
-        subtotal: l.qty * l.unitPrice,
-      }))
-
-    if (discountAmount > 0) {
-      items.push({
-        type: 'discount',
-        label: discType === 'percent' ? `Descuento (${discValue}%)` : 'Descuento',
-        discountType: discType,
-        discountValue: discValue,
-        qty: 1,
-        unitPrice: -discountAmount,
-        subtotal: -discountAmount,
-      })
-    }
+    const docNumber = await generateDocNumber()
+    const discTypeCap = discType === 'none' ? 'None' : discType === 'percent' ? 'Percent' : 'Amount'
 
     const { data, error: err } = await supabase.from('quotes').insert({
-      quote_number: qNum,
+      doc_number: docNumber,
+      doc_type: 'Quote',
       client_id: clientId,
       status,
-      items,
       subtotal,
       tax_rate: TAX_RATE,
-      tax_amount: tax,
+      tax_amt: tax,
       total,
-      deposit_amount: deposit,
-      balance,
+      discount_type: discTypeCap,
+      discount_value: discValue || null,
+      discount_amount: discountAmount,
+      final_total: total,
+      deposit,
       notes: notes || null,
-      expires_at: expires,
-      valid_days: 30,
+      date_issued: new Date().toISOString().split('T')[0],
     }).select().single()
 
-    if (err) { setError(err.message); setSaving(false); return }
+    if (err || !data) { setError(err?.message || 'Error al guardar'); setSaving(false); return }
+
+    const lineRows = validLines.map((l, idx) => ({
+      quote_id: data.id,
+      description: l.description,
+      qty: l.qty,
+      price: l.unitPrice,
+      sort_order: idx,
+    }))
+    const { error: lineErr } = await supabase.from('line_items').insert(lineRows)
+    if (lineErr) { setError('Cotización guardada, pero hubo un error con las líneas: ' + lineErr.message); setSaving(false); return }
+
     router.push(`/quotes/${data.id}`)
   }
 
@@ -197,11 +190,11 @@ export default function NewQuotePage() {
           <ArrowLeft size={20} />
         </button>
         <h1 className="text-lg font-bold text-gray-800 flex-1">Nueva Quote</h1>
-        <button onClick={() => saveQuote('draft')} disabled={saving}
+        <button onClick={() => saveQuote('Draft')} disabled={saving}
           className="px-4 py-2 rounded-lg border border-gray-300 text-sm font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-50 flex items-center gap-2">
           <Save size={16} /> Guardar Draft
         </button>
-        <button onClick={() => saveQuote('sent')} disabled={saving}
+        <button onClick={() => saveQuote('Sent')} disabled={saving}
           className="px-4 py-2 rounded-lg bg-orange-500 text-white text-sm font-semibold hover:bg-orange-600 disabled:opacity-50 flex items-center gap-2">
           <Send size={16} /> Guardar y Enviar
         </button>
