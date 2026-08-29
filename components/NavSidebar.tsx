@@ -28,6 +28,10 @@ export default function NavSidebar() {
 
   async function handleLogout() {
     await supabase.auth.signOut()
+    // Also clear the presence cookie the middleware checks on page loads —
+    // signOut() only clears the browser client's own session storage.
+    const ref = (process.env.NEXT_PUBLIC_SUPABASE_URL || '').split('//')[1]?.split('.')[0]
+    if (ref) document.cookie = `sb-${ref}-auth-token=; Max-Age=0; path=/`
     window.location.replace('/login')
   }
 
