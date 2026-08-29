@@ -5,28 +5,26 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
+// Nota: Invoices/Leads/Proyectos/Prospectos/Resumen/Business Setup existen como código
+// en este repo pero apuntan a tablas que nunca se crearon en la base de datos real
+// (leads, invoices, projects, prospects, business_profiles) — quedaron de una versión
+// más ambiciosa construida antes de alinear el schema con Airtable. Se quitan del menú
+// para no mandar a Eduardo a una página rota. El flujo real y probado es:
+// Dashboard, Cotizaciones, Clientes, Gastos, Calendario.
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Dashboard' },
-  { href: '/quotes',    label: 'Quotes' },
-  { href: '/invoices',  label: 'Invoices' },
+  { href: '/quotes',    label: 'Cotizaciones' },
   { href: '/clients',   label: 'Clientes' },
   { href: '/expenses',  label: 'Gastos' },
   { href: '/calendar',  label: '📅 Calendario' },
-  { href: '/summary',   label: '📊 Resumen' },
 ]
 
-const ADMIN_ITEMS = [
-  { href: '/admin/settings', label: '⚙️ Business Setup' },
-]
+const ADMIN_ITEMS: { href: string; label: string }[] = []
 
 export default function NavSidebar() {
   const pathname = usePathname()
-  const [bizName, setBizName] = useState('Infinity Wrap Design')
-
-  useEffect(() => {
-    supabase.from('business_profiles').select('name').eq('is_active', true).maybeSingle()
-      .then(({ data }) => { if (data?.name) setBizName(data.name) })
-  }, [])
+  // Nombre fijo — la tabla business_profiles no existe en la base real (ver nota arriba).
+  const bizName = 'Infinity Wrap Design'
 
   async function handleLogout() {
     await supabase.auth.signOut()
@@ -59,7 +57,7 @@ export default function NavSidebar() {
         ))}
 
         <div className="pt-3 pb-1">
-          <p className="text-xs font-semibold text-gray-600 uppercase tracking-wider px-4 mb-2">Admin</p>
+          {ADMIN_ITEMS.length > 0 && <p className="text-xs font-semibold text-gray-600 uppercase tracking-wider px-4 mb-2">Admin</p>}
           {ADMIN_ITEMS.map(item => (
             <Link key={item.href} href={item.href} className={linkClass(item.href)}>
               <span>{item.label}</span>
