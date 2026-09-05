@@ -14,7 +14,6 @@ interface ChatGPTToken {
 }
 
 export default function SettingsPage() {
-  // Login settings
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -22,7 +21,6 @@ export default function SettingsPage() {
   const [msg, setMsg] = useState('')
   const [err, setErr] = useState('')
 
-  // ChatGPT API settings
   const [tokens, setTokens] = useState<ChatGPTToken[]>([])
   const [generatingToken, setGeneratingToken] = useState(false)
   const [tokenNotes, setTokenNotes] = useState('')
@@ -36,12 +34,14 @@ export default function SettingsPage() {
   }, [])
 
   async function loadTokens() {
-    const { data, error } = await supabase
-      .from('chatgpt_api_tokens')
-      .select('*')
-      .order('created_at', { ascending: false })
-    if (!error && data) {
-      setTokens(data)
+    try {
+      const res = await fetch('/api/chatgpt/tokens')
+      const data = await res.json()
+      if (Array.isArray(data)) {
+        setTokens(data)
+      }
+    } catch (e) {
+      console.error('Error loading tokens:', e)
     }
   }
 
@@ -78,27 +78,49 @@ export default function SettingsPage() {
 
   async function generateToken() {
     setGeneratingToken(true)
-    const { data, error } = await supabase.rpc('generate_chatgpt_token', {
-      p_notes: tokenNotes || null
-    })
-    setGeneratingToken(false)
-    if (error) {
-      alert('Error: ' + error.message)
-      return
+    try {
+      const res = await fetch('/api/chatgpt/tokens', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'generate',
+          notes: tokenNotes || null
+        })
+      })
+      const data = await res.json()
+      if (data.token) {
+        setNewToken(data.token)
+        setTokenNotes('')
+        loadTokens()
+      } else {
+        alert('Error: ' + (data.error || 'Unknown error'))
+      }
+    } catch (e) {
+      alert('Error: ' + (e as any).message)
     }
-    setNewToken(data)
-    setTokenNotes('')
-    loadTokens()
+    setGeneratingToken(false)
   }
 
   async function revokeToken(token: string) {
     if (!confirm('¿Estás seguro? ChatGPT no podrá usar este token.')) return
-    const { error } = await supabase.rpc('revoke_chatgpt_token', { p_token: token })
-    if (error) {
-      alert('Error: ' + error.message)
-      return
+    try {
+      const res = await fetch('/api/chatgpt/tokens', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'revoke',
+          token_to_revoke: token
+        })
+      })
+      const data = await res.json()
+      if (data.success) {
+        loadTokens()
+      } else {
+        alert('Error: ' + (data.error || 'Unknown error'))
+      }
+    } catch (e) {
+      alert('Error: ' + (e as any).message)
     }
-    loadTokens()
   }
 
   async function loadAuditLog() {
@@ -123,7 +145,6 @@ export default function SettingsPage() {
           <p className="text-gray-500">Gestiona tu cuenta, seguridad e integraciones</p>
         </div>
 
-        {/* Login Settings */}
         <section>
           <h2 className="text-xl font-bold text-gray-900 mb-4">Cambiar Usuario y Contraseña</h2>
           <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 space-y-5">
@@ -137,9 +158,7 @@ export default function SettingsPage() {
               />
             </div>
             <div>
-              <label className="block text-gray-600 text-xs font-medium mb-2">
-                Nueva contraseña <span className="text-gray-400 font-normal">(déjalo en blanco para no cambiarla)</span>
-              </label>
+              <label className="block text-gray-600 text-xs font-medium mb-2">Nueva contraseña <span className="text-gray-400 font-normal">(déjalo en blanco para no cambiarla)</span></label>
               <input
                 type="password"
                 value={password}
@@ -171,11 +190,9 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        {/* ChatGPT API Settings */}
         <section>
           <h2 className="text-xl font-bold text-gray-900 mb-4">ChatGPT API Access</h2>
           <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 space-y-6">
-            {/* New Token Generation */}
             <div className="pb-6 border-b border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Generar Nuevo Token</h3>
               <div className="space-y-4">
@@ -220,7 +237,6 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {/* Active Tokens */}
             <div className="pb-6 border-b border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Tokens Activos</h3>
               {tokens.length === 0 ? (
@@ -258,7 +274,6 @@ export default function SettingsPage() {
               )}
             </div>
 
-            {/* Audit Log */}
             <div>
               <button
                 onClick={() => {
