@@ -57,7 +57,7 @@ const EMPTY_FORM = {
   vendor: '', date: new Date().toISOString().split('T')[0], notes: ''
 }
 
-const ic = "w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 bg-white text-gray-800"
+const ic = "w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white text-gray-800"
 const lb = "text-xs font-bold text-gray-500 uppercase tracking-wide mb-1 block"
 
 export default function ExpensesPage() {
@@ -282,19 +282,19 @@ export default function ExpensesPage() {
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-              <TrendingDown size={26} className="text-orange-500"/> Expenses
+              <TrendingDown size={26} className="text-blue-500"/> Expenses
             </h1>
             <p className="text-gray-500 mt-1">Track & categorize — Infinity Wrap Design</p>
           </div>
           <div className="flex gap-2">
             <button onClick={openOCR}
               className="flex items-center gap-2 bg-gray-900 hover:bg-gray-700 text-white px-4 py-2.5 rounded-xl font-semibold transition-colors text-sm">
-              <Camera size={16} className="text-orange-400"/>
+              <Camera size={16} className="text-blue-400"/>
               <span>Scan Receipt</span>
-              <span className="bg-orange-500 text-white text-xs px-1.5 py-0.5 rounded-full font-bold">AI</span>
+              <span className="bg-blue-500 text-white text-xs px-1.5 py-0.5 rounded-full font-bold">AI</span>
             </button>
             <button onClick={openNewManual}
-              className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2.5 rounded-xl font-semibold transition-colors text-sm">
+              className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2.5 rounded-xl font-semibold transition-colors text-sm">
               <Plus size={16}/>Manual
             </button>
           </div>
@@ -323,15 +323,15 @@ export default function ExpensesPage() {
           <div className="relative flex-1 min-w-52">
             <Search size={14} className="absolute left-3 top-3 text-gray-400"/>
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search expenses..."
-              className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"/>
+              className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"/>
           </div>
           <select value={filterCat} onChange={e => setFilterCat(e.target.value)}
-            className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-orange-400">
+            className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-400">
             <option value="all">All categories</option>
             {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
           <select value={filterMonth} onChange={e => setFilterMonth(e.target.value)}
-            className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-orange-400">
+            className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-400">
             <option value="all">All months</option>
             {months.map(m => <option key={m} value={m}>{m}</option>)}
           </select>
@@ -425,8 +425,8 @@ export default function ExpensesPage() {
                   {ocrState === 'idle' && !ocrPreview && (
                     <div
                       onClick={() => fileInputRef.current?.click()}
-                      className="border-2 border-dashed border-orange-200 rounded-2xl p-10 text-center cursor-pointer hover:border-orange-400 hover:bg-orange-50/30 transition-all">
-                      <Camera size={40} className="mx-auto text-orange-300 mb-3"/>
+                      className="border-2 border-dashed border-blue-200 rounded-2xl p-10 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50/30 transition-all">
+                      <Camera size={40} className="mx-auto text-blue-300 mb-3"/>
                       <p className="font-semibold text-gray-700 text-lg">Tap to scan receipt</p>
                       <p className="text-gray-400 text-sm mt-1">Photo, screenshot, or PDF — AI will extract all fields</p>
                       <div className="flex justify-center gap-4 mt-4 text-xs text-gray-300">
@@ -439,7 +439,7 @@ export default function ExpensesPage() {
                   {/* Processing states */}
                   {ocrState === 'uploading' && (
                     <div className="flex flex-col items-center py-10 gap-3">
-                      <Loader size={32} className="text-orange-500 animate-spin"/>
+                      <Loader size={32} className="text-blue-500 animate-spin"/>
                       <p className="font-semibold text-gray-700">Uploading receipt...</p>
                     </div>
                   )}
@@ -462,7 +462,7 @@ export default function ExpensesPage() {
                         {ocrState === 'done' && (
                           <div className="bg-purple-50 border border-purple-100 rounded-xl p-3 mb-3">
                             <p className="text-xs font-bold text-purple-700 flex items-center gap-1 mb-1"><Sparkles size={11}/>AI extracted — review & confirm below</p>
-                            {ocrError && <p className="text-xs text-orange-600">{ocrError}</p>}
+                            {ocrError && <p className="text-xs text-blue-600">{ocrError}</p>}
                           </div>
                         )}
                         {ocrState === 'error' && (
@@ -472,7 +472,7 @@ export default function ExpensesPage() {
                           </div>
                         )}
                         <button onClick={() => { setOcrPreview(null); setOcrState('idle'); setUploadedUrl(null); fileInputRef.current?.click() }}
-                          className="text-xs text-orange-500 hover:text-orange-700 font-semibold flex items-center gap-1">
+                          className="text-xs text-blue-500 hover:text-blue-700 font-semibold flex items-center gap-1">
                           <Camera size={11}/>Scan different receipt
                         </button>
                       </div>
@@ -553,7 +553,7 @@ export default function ExpensesPage() {
                   Cancelar
                 </button>
                 <button onClick={saveExpense} disabled={saving || !form.description.trim() || !form.amount}
-                  className="flex-1 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white py-2.5 rounded-xl font-bold transition-colors flex items-center justify-center gap-2">
+                  className="flex-1 bg-blue-500 hover:bg-blue-600 disabled:opacity-50 text-white py-2.5 rounded-xl font-bold transition-colors flex items-center justify-center gap-2">
                   {saving ? <><Loader size={14} className="animate-spin"/>Guardando...</> : <><CheckCircle size={14}/>{editing ? 'Actualizar' : 'Guardar Gasto'}</>}
                 </button>
               </div>

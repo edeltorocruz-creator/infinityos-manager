@@ -145,7 +145,7 @@ export default function ReportsPage() {
           {[
             { label: 'Total Revenue', value: formatCurrency(data.totalRevenue), color: 'text-green-600', icon: TrendingUp, iconColor: 'bg-green-100 text-green-600' },
             { label: 'Total Expenses', value: formatCurrency(data.totalExpenses), color: 'text-red-500', icon: TrendingDown, iconColor: 'bg-red-100 text-red-600' },
-            { label: 'Net Profit', value: formatCurrency(data.netProfit), color: data.netProfit >= 0 ? 'text-orange-500' : 'text-red-600', icon: DollarSign, iconColor: data.netProfit >= 0 ? 'bg-orange-100 text-orange-600' : 'bg-red-100 text-red-600' },
+            { label: 'Net Profit', value: formatCurrency(data.netProfit), color: data.netProfit >= 0 ? 'text-blue-500' : 'text-red-600', icon: DollarSign, iconColor: data.netProfit >= 0 ? 'bg-blue-100 text-blue-600' : 'bg-red-100 text-red-600' },
             { label: 'Avg Quote Value', value: formatCurrency(data.avgQuoteValue), color: 'text-blue-600', icon: FileText, iconColor: 'bg-blue-100 text-blue-600' },
           ].map(kpi => {
             const Icon = kpi.icon
@@ -204,7 +204,7 @@ export default function ReportsPage() {
                     </div>
                     <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                       <div className="h-full rounded-full transition-all"
-                        style={{ width: `${(s.revenue / maxServiceRevenue) * 100}%`, background: ['#f97316','#3b82f6','#8b5cf6','#10b981','#f59e0b'][i] }} />
+                        style={{ width: `${(s.revenue / maxServiceRevenue) * 100}%`, background: ['#3b82f6','#0ea5e9','#8b5cf6','#10b981','#f59e0b'][i] }} />
                     </div>
                   </div>
                 ))}
@@ -221,7 +221,7 @@ export default function ReportsPage() {
               {[
                 { label: 'Total Quotes', value: data.totalQuotes },
                 { label: 'Approved', value: data.approvedQuotes, color: 'text-green-600' },
-                { label: 'Conversion Rate', value: `${data.conversionRate}%`, color: data.conversionRate >= 50 ? 'text-green-600' : 'text-orange-500' },
+                { label: 'Conversion Rate', value: `${data.conversionRate}%`, color: data.conversionRate >= 50 ? 'text-green-600' : 'text-blue-500' },
               ].map(stat => (
                 <div key={stat.label} className="flex justify-between items-center py-2 border-b border-gray-50 last:border-0">
                   <span className="text-sm text-gray-600">{stat.label}</span>
@@ -242,7 +242,7 @@ export default function ReportsPage() {
             <h2 className="font-semibold text-gray-900 mb-4">Projects</h2>
             <div className="space-y-3">
               {[
-                { label: 'Active', value: data.activeProjects, color: 'text-orange-500' },
+                { label: 'Active', value: data.activeProjects, color: 'text-blue-500' },
                 { label: 'Completed', value: data.completedProjects, color: 'text-green-600' },
                 { label: 'Total Clients', value: data.totalClients, color: 'text-purple-600' },
               ].map(stat => (

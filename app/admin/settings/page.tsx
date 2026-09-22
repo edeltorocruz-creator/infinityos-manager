@@ -83,7 +83,7 @@ export default function BusinessSettingsPage() {
   }
 
   const currentProfile = profiles.find(p => p.id === active)
-  const inp = "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+  const inp = "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
   const textArea = inp + " resize-none"
 
   if (loading) return (
@@ -113,17 +113,17 @@ export default function BusinessSettingsPage() {
             const isAct = p.id === active
             return (
               <div key={p.id}
-                className={`p-4 rounded-xl border-2 transition-all ${isAct ? 'border-orange-400 bg-orange-50 shadow-sm' : 'border-gray-200 bg-white hover:border-orange-200'}`}>
+                className={`p-4 rounded-xl border-2 transition-all ${isAct ? 'border-blue-400 bg-blue-50 shadow-sm' : 'border-gray-200 bg-white hover:border-blue-200'}`}>
                 <div className="flex items-start justify-between mb-2">
                   <span className="text-2xl">{meta.icon}</span>
-                  {isAct && <span className="text-xs font-bold text-orange-600 bg-orange-100 px-2 py-0.5 rounded-full">Active</span>}
+                  {isAct && <span className="text-xs font-bold text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">Active</span>}
                 </div>
                 <p className="font-semibold text-gray-900 text-sm">{p.name}</p>
                 <p className="text-xs text-gray-400 mt-0.5">{meta.label}</p>
                 <div className="mt-3 flex gap-2">
                   {!isAct && (
                     <button onClick={() => setActiveProfile(p.id)} disabled={saving}
-                      className="flex-1 text-xs bg-orange-500 hover:bg-orange-600 text-white py-1.5 rounded-lg font-semibold disabled:opacity-50">
+                      className="flex-1 text-xs bg-blue-500 hover:bg-blue-600 text-white py-1.5 rounded-lg font-semibold disabled:opacity-50">
                       Set Active
                     </button>
                   )}
@@ -146,7 +146,7 @@ export default function BusinessSettingsPage() {
                 <p className="text-xs text-gray-400 mt-0.5">Active business — used in all quotes and PDFs</p>
               </div>
               <button onClick={() => setEditing({ ...currentProfile })}
-                className="text-sm text-orange-500 hover:text-orange-600 font-medium">
+                className="text-sm text-blue-500 hover:text-blue-600 font-medium">
                 Edit details →
               </button>
             </div>
@@ -172,7 +172,7 @@ export default function BusinessSettingsPage() {
 
         {/* Edit Form */}
         {editing && (
-          <div className="bg-white rounded-xl border border-orange-200 p-6">
+          <div className="bg-white rounded-xl border border-blue-200 p-6">
             <div className="flex items-center justify-between mb-5">
               <h2 className="font-bold text-gray-900">Edit: {editing.name}</h2>
               <div className="flex gap-2">
@@ -181,7 +181,7 @@ export default function BusinessSettingsPage() {
                   Cancel
                 </button>
                 <button onClick={saveEdits} disabled={saving}
-                  className="px-4 py-2 text-sm bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-semibold flex items-center gap-2 disabled:opacity-50">
+                  className="px-4 py-2 text-sm bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-semibold flex items-center gap-2 disabled:opacity-50">
                   <Save className="w-4 h-4" /> {saving ? 'Saving...' : 'Save to DB'}
                 </button>
               </div>

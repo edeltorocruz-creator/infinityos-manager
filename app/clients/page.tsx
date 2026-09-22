@@ -71,7 +71,7 @@ export default function ClientsPage() {
             <h1 className="text-3xl font-bold text-gray-900">Clients</h1>
             <p className="text-gray-500 mt-1">{clients.length} total clients</p>
           </div>
-          <button onClick={openNew} className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-5 py-3 rounded-lg font-semibold transition-colors">
+          <button onClick={openNew} className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-5 py-3 rounded-lg font-semibold transition-colors">
             <Plus size={20} /> Add Client
           </button>
         </div>
@@ -79,7 +79,7 @@ export default function ClientsPage() {
         <div className="relative mb-6">
           <Search size={18} className="absolute left-4 top-3.5 text-gray-400" />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name, contact or email..."
-            className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-orange-400 text-sm" />
+            className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm" />
         </div>
 
         {loading ? (
@@ -88,15 +88,15 @@ export default function ClientsPage() {
           <div className="text-center py-20 bg-white rounded-xl border border-gray-100">
             <User size={48} className="mx-auto text-gray-300 mb-4" />
             <p className="text-gray-500 text-lg">{search ? 'No clients match your search' : 'No clients yet'}</p>
-            {!search && <button onClick={openNew} className="text-orange-500 hover:underline mt-2 inline-block">Add your first client →</button>}
+            {!search && <button onClick={openNew} className="text-blue-500 hover:underline mt-2 inline-block">Add your first client →</button>}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filtered.map(c => (
               <div key={c.id} className="bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow p-5">
                 <div className="flex items-start justify-between mb-3">
-                  <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    <span className="text-orange-600 font-bold text-sm">{c.name.charAt(0).toUpperCase()}</span>
+                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <span className="text-blue-600 font-bold text-sm">{c.name.charAt(0).toUpperCase()}</span>
                   </div>
                   <div className="flex gap-1">
                     <button onClick={() => openEdit(c)} className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"><Edit2 size={15} /></button>
@@ -127,18 +127,18 @@ export default function ClientsPage() {
                 <div key={f.key}>
                   <label className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1 block">{f.label}</label>
                   <input value={(form as any)[f.key]} onChange={e => setForm({ ...form, [f.key]: e.target.value })} placeholder={f.placeholder}
-                    className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400" />
+                    className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
                 </div>
               ))}
               <div>
                 <label className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1 block">Notes</label>
                 <textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} rows={2} placeholder="Internal notes..."
-                  className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 resize-none" />
+                  className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none" />
               </div>
             </div>
             <div className="flex gap-3 mt-6">
               <button onClick={() => setShowForm(false)} className="flex-1 border border-gray-200 text-gray-600 py-2.5 rounded-lg font-medium hover:bg-gray-50 transition-colors">Cancel</button>
-              <button onClick={saveClient} disabled={saving || !form.name.trim()} className="flex-1 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white py-2.5 rounded-lg font-semibold transition-colors">
+              <button onClick={saveClient} disabled={saving || !form.name.trim()} className="flex-1 bg-blue-500 hover:bg-blue-600 disabled:opacity-50 text-white py-2.5 rounded-lg font-semibold transition-colors">
                 {saving ? 'Saving...' : (editing ? 'Update' : 'Add Client')}
               </button>
             </div>

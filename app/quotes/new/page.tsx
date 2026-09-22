@@ -10,7 +10,7 @@ import { ArrowLeft, Save, Plus, Send, Tag, Trash2 } from 'lucide-react'
 interface ClientRow { id: string; name: string; phone?: string | null; contact_name?: string | null }
 interface LineItem { id: string; description: string; qty: number; unitPrice: number }
 
-const inp = "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-orange-400"
+const inp = "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
 
 function newLine(): LineItem {
   return {
@@ -195,7 +195,7 @@ export default function NewQuotePage() {
           <Save size={16} /> Guardar Draft
         </button>
         <button onClick={() => saveQuote('Sent')} disabled={saving}
-          className="px-4 py-2 rounded-lg bg-orange-500 text-white text-sm font-semibold hover:bg-orange-600 disabled:opacity-50 flex items-center gap-2">
+          className="px-4 py-2 rounded-lg bg-blue-500 text-white text-sm font-semibold hover:bg-blue-600 disabled:opacity-50 flex items-center gap-2">
           <Send size={16} /> Guardar y Enviar
         </button>
       </div>
@@ -210,12 +210,12 @@ export default function NewQuotePage() {
           <p className="font-bold text-gray-800">Cliente</p>
 
           {selectedClient ? (
-            <div className="flex items-center justify-between bg-orange-50 border border-orange-200 rounded-lg px-4 py-3">
+            <div className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-lg px-4 py-3">
               <div>
                 <p className="font-semibold text-gray-800">{selectedClient.name}</p>
                 {selectedClient.phone && <p className="text-xs text-gray-500">{selectedClient.phone}</p>}
               </div>
-              <button onClick={() => setClientId('')} className="text-xs text-orange-600 hover:underline">Cambiar</button>
+              <button onClick={() => setClientId('')} className="text-xs text-blue-600 hover:underline">Cambiar</button>
             </div>
           ) : creatingClient ? (
             <div className="space-y-2">
@@ -226,7 +226,7 @@ export default function NewQuotePage() {
                 onKeyDown={e => { if (e.key === 'Enter') createClient() }} />
               <div className="flex gap-2">
                 <button onClick={createClient}
-                  className="px-4 py-2 rounded-lg bg-orange-500 text-white text-sm font-semibold hover:bg-orange-600">
+                  className="px-4 py-2 rounded-lg bg-blue-500 text-white text-sm font-semibold hover:bg-blue-600">
                   Crear cliente
                 </button>
                 <button onClick={() => setCreatingClient(false)}
@@ -244,13 +244,13 @@ export default function NewQuotePage() {
                   {filteredClients.map(c => (
                     <button key={c.id}
                       onClick={() => { setClientId(c.id); setShowDropdown(false); setClientSearch('') }}
-                      className="w-full text-left px-4 py-2.5 hover:bg-orange-50 text-sm">
+                      className="w-full text-left px-4 py-2.5 hover:bg-blue-50 text-sm">
                       <span className="font-medium text-gray-800">{c.name}</span>
                       {c.phone && <span className="text-gray-400 ml-2 text-xs">{c.phone}</span>}
                     </button>
                   ))}
                   <button onClick={() => { setCreatingClient(true); setShowDropdown(false) }}
-                    className="w-full text-left px-4 py-2.5 text-sm font-semibold text-orange-600 hover:bg-orange-50 border-t border-gray-100">
+                    className="w-full text-left px-4 py-2.5 text-sm font-semibold text-blue-600 hover:bg-blue-50 border-t border-gray-100">
                     + Crear cliente nuevo
                   </button>
                 </div>
@@ -359,7 +359,7 @@ export default function NewQuotePage() {
                 </div>
                 <div className="w-24 text-right">
                   <p className="text-xs text-gray-400 mb-1">Subtotal</p>
-                  <p className="text-lg font-bold text-orange-600">{formatCurrency(l.qty * l.unitPrice)}</p>
+                  <p className="text-lg font-bold text-blue-600">{formatCurrency(l.qty * l.unitPrice)}</p>
                 </div>
                 {lines.length > 1 && (
                   <button
@@ -374,7 +374,7 @@ export default function NewQuotePage() {
           </div>
           <button
             onClick={() => setLines(p => [...p, newLine()])}
-            className="mt-4 w-full py-2 rounded-lg border-2 border-dashed border-gray-300 text-sm font-semibold text-gray-500 hover:border-orange-400 hover:text-orange-600 flex items-center justify-center gap-2"
+            className="mt-4 w-full py-2 rounded-lg border-2 border-dashed border-gray-300 text-sm font-semibold text-gray-500 hover:border-blue-400 hover:text-blue-600 flex items-center justify-center gap-2"
           >
             <Plus size={16} /> Agregar línea
           </button>
@@ -382,12 +382,12 @@ export default function NewQuotePage() {
 
         {/* ── Descuento ── */}
         <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-3">
-          <p className="font-bold text-gray-800 flex items-center gap-2"><Tag size={16} className="text-orange-500" /> Descuento</p>
+          <p className="font-bold text-gray-800 flex items-center gap-2"><Tag size={16} className="text-blue-500" /> Descuento</p>
           <div className="grid grid-cols-3 gap-2">
             {([['none', 'Sin descuento'], ['percent', 'Porcentaje %'], ['amount', 'Monto $']] as const).map(([t, label]) => (
               <button key={t} onClick={() => setDiscType(t)}
                 className={`py-2.5 rounded-xl border-2 text-xs font-semibold transition-all ${
-                  discType === t ? 'border-orange-500 bg-orange-50 text-orange-700' : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                  discType === t ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-500 hover:border-gray-300'
                 }`}>
                 {label}
               </button>
@@ -433,7 +433,7 @@ export default function NewQuotePage() {
           <div className="flex justify-between text-lg font-bold text-gray-900 border-t border-gray-100 pt-2">
             <span>Total</span><span>{formatCurrency(total)}</span>
           </div>
-          <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 flex justify-between items-center mt-2">
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex justify-between items-center mt-2">
             <div className="text-sm">
               <p className="font-semibold text-gray-800">Depósito 50%: {formatCurrency(deposit)}</p>
               <p className="text-xs text-gray-500">Balance al terminar: {formatCurrency(balance)}</p>

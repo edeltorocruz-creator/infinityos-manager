@@ -117,7 +117,7 @@ export default function CalendarPage() {
           <h1 className="text-2xl font-bold text-gray-900">📅 Calendario</h1>
           <div className="flex items-center gap-2">
             <button onClick={() => openNew()}
-              className="flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 text-white px-3 py-2 rounded-lg text-sm font-semibold">
+              className="flex items-center gap-1.5 bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-lg text-sm font-semibold">
               <Plus size={15}/>Nuevo evento
             </button>
             <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-2 py-1.5">
@@ -130,7 +130,7 @@ export default function CalendarPage() {
 
         {loading ? <p className="text-gray-400 text-sm">Cargando…</p> : (
           <>
-            {dayList('⭐ Hoy', today, 'bg-orange-50 border-orange-200')}
+            {dayList('⭐ Hoy', today, 'bg-blue-50 border-blue-200')}
             {dayList('📆 Esta semana', thisWeek, 'bg-white border-gray-200')}
             {today.length === 0 && thisWeek.length === 0 && (
               <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-sm text-gray-700">
@@ -154,13 +154,13 @@ export default function CalendarPage() {
                   return (
                     <div key={i}
                       onClick={() => openNew(dateStr)}
-                      className={`min-h-20 rounded-lg border p-1.5 text-xs cursor-pointer hover:border-orange-300 transition-colors ${
-                        isToday ? 'border-orange-400 bg-orange-50' : 'border-gray-100'
+                      className={`min-h-20 rounded-lg border p-1.5 text-xs cursor-pointer hover:border-blue-300 transition-colors ${
+                        isToday ? 'border-blue-400 bg-blue-50' : 'border-gray-100'
                       }`}>
-                      <p className={`font-semibold mb-1 ${isToday ? 'text-orange-600' : 'text-gray-600'}`}>{day}</p>
+                      <p className={`font-semibold mb-1 ${isToday ? 'text-blue-600' : 'text-gray-600'}`}>{day}</p>
                       {evs.slice(0, 3).map(a => (
                         <div key={a.id} className="flex items-center gap-1 truncate text-gray-600" title={a.title}>
-                          <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-orange-500" />
+                          <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-blue-500" />
                           <span className="truncate">{a.title}</span>
                         </div>
                       ))}
@@ -187,40 +187,40 @@ export default function CalendarPage() {
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1 block">Título *</label>
                 <input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })}
                   placeholder="Instalación, medición, entrega..."
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"/>
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"/>
               </div>
               <div>
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1 block">Fecha</label>
                 <input type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"/>
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"/>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1 block">Inicio</label>
                   <input type="time" value={form.startTime} onChange={e => setForm({ ...form, startTime: e.target.value })}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"/>
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"/>
                 </div>
                 <div>
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1 block">Fin</label>
                   <input type="time" value={form.endTime} onChange={e => setForm({ ...form, endTime: e.target.value })}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"/>
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"/>
                 </div>
               </div>
               <div>
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1 flex items-center gap-1"><MapPin size={11}/>Ubicación (opcional)</label>
                 <input value={form.location} onChange={e => setForm({ ...form, location: e.target.value })}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"/>
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"/>
               </div>
               <div>
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1 block">Notas</label>
                 <textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} rows={2}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 resize-none"/>
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none"/>
               </div>
             </div>
             <div className="flex gap-3 mt-5">
               <button onClick={() => setShowForm(false)} className="flex-1 border border-gray-200 text-gray-600 py-2.5 rounded-xl font-medium">Cancelar</button>
               <button onClick={saveAppt} disabled={saving || !form.title.trim()}
-                className="flex-1 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white py-2.5 rounded-xl font-bold">
+                className="flex-1 bg-blue-500 hover:bg-blue-600 disabled:opacity-50 text-white py-2.5 rounded-xl font-bold">
                 {saving ? 'Guardando...' : 'Guardar'}
               </button>
             </div>

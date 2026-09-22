@@ -140,7 +140,7 @@ export default function QuoteDetailPage() {
               value={quote.status}
               onChange={e => updateStatus(e.target.value)}
               disabled={updating}
-              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 text-gray-700">
+              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 text-gray-700">
               {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
 
@@ -164,7 +164,7 @@ export default function QuoteDetailPage() {
               <Printer size={14}/> Print
             </button>
             <a href={`/api/pdf/quote/${id}`} target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 text-white px-3 py-2 rounded-lg text-sm font-bold no-underline" style={{textDecoration:'none'}}>
+              className="flex items-center gap-1.5 bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-lg text-sm font-bold no-underline" style={{textDecoration:'none'}}>
               <FileText size={14}/> Download PDF
             </a>
             <button onClick={deleteQuote}
@@ -180,7 +180,7 @@ export default function QuoteDetailPage() {
             onChange={e => { const f = e.target.files?.[0]; if (f) handleAttachFile(f) }}/>
           {quote.attachment_url ? (
             <div className="flex items-center gap-3 bg-white border border-gray-100 rounded-xl px-4 py-3 shadow-sm">
-              <Paperclip size={16} className="text-orange-500 flex-shrink-0"/>
+              <Paperclip size={16} className="text-blue-500 flex-shrink-0"/>
               <a href={quote.attachment_url} target="_blank" rel="noreferrer"
                 className="text-sm text-blue-600 hover:underline flex-1 truncate">
                 {quote.attachment_name || 'Archivo adjunto'}
@@ -193,7 +193,7 @@ export default function QuoteDetailPage() {
             </div>
           ) : (
             <button onClick={() => fileInputRef.current?.click()} disabled={attaching}
-              className="flex items-center gap-2 bg-white border border-dashed border-gray-300 hover:border-orange-400 hover:bg-orange-50/30 text-gray-500 hover:text-orange-600 px-4 py-3 rounded-xl text-sm font-medium w-full transition-colors">
+              className="flex items-center gap-2 bg-white border border-dashed border-gray-300 hover:border-blue-400 hover:bg-blue-50/30 text-gray-500 hover:text-blue-600 px-4 py-3 rounded-xl text-sm font-medium w-full transition-colors">
               {attaching ? <><Loader size={14} className="animate-spin"/>Subiendo...</> : <><Paperclip size={14}/>Adjuntar PDF o foto (cotización de proveedor, referencia, etc.)</>}
             </button>
           )}
@@ -213,14 +213,14 @@ export default function QuoteDetailPage() {
           <div className="bg-gray-900 text-white px-8 py-7">
             <div className="flex justify-between items-start">
               <div>
-                <div className="text-2xl font-black tracking-tight text-orange-400">INFINITY</div>
+                <div className="text-2xl font-black tracking-tight text-blue-400">INFINITY</div>
                 <div className="text-2xl font-black tracking-tight">WRAP DESIGN</div>
                 <div className="text-gray-400 text-sm mt-2">(919) 649-0755</div>
                 <div className="text-gray-400 text-sm">infinitywrapdesign@gmail.com</div>
                 <div className="text-gray-400 text-sm">North Carolina</div>
               </div>
               <div className="text-right">
-                <div className="text-4xl font-black text-orange-400 tracking-tight">{quote.doc_type === 'Invoice' ? 'INVOICE' : 'QUOTE'}</div>
+                <div className="text-4xl font-black text-blue-400 tracking-tight">{quote.doc_type === 'Invoice' ? 'INVOICE' : 'QUOTE'}</div>
                 <div className="text-gray-300 text-sm mt-2 font-mono">{quote.doc_number}</div>
                 <div className="text-gray-400 text-sm mt-1">Date: {formatDate(quote.date_issued)}</div>
                 <div className={`mt-3 inline-block text-xs font-bold px-3 py-1 rounded-full ${
@@ -235,7 +235,7 @@ export default function QuoteDetailPage() {
           </div>
 
           {/* Bill To */}
-          <div className="px-8 py-5 bg-orange-50 border-b border-gray-100">
+          <div className="px-8 py-5 bg-blue-50 border-b border-gray-100">
             <div className="grid grid-cols-2 gap-6">
               <div>
                 <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">Bill To</p>
@@ -296,12 +296,12 @@ export default function QuoteDetailPage() {
                 </div>
                 <div className="flex justify-between py-2.5 bg-gray-900 rounded-lg px-3 mt-2">
                   <span className="text-white font-bold text-base">TOTAL</span>
-                  <span className="text-orange-400 font-black text-xl">{formatCurrency(total)}</span>
+                  <span className="text-blue-400 font-black text-xl">{formatCurrency(total)}</span>
                 </div>
-                <div className="bg-orange-50 border border-orange-100 rounded-lg p-3 mt-2 space-y-1.5">
+                <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 mt-2 space-y-1.5">
                   <div className="flex justify-between text-sm">
-                    <span className="text-orange-700 font-bold">50% Deposit Due</span>
-                    <span className="text-orange-700 font-black">{formatCurrency(deposit)}</span>
+                    <span className="text-blue-700 font-bold">50% Deposit Due</span>
+                    <span className="text-blue-700 font-black">{formatCurrency(deposit)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Balance on Completion</span>
@@ -315,7 +315,7 @@ export default function QuoteDetailPage() {
           {/* This Price Includes */}
           <div className="px-8 pb-5">
             <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
-              <p className="text-xs font-bold text-orange-600 uppercase tracking-wide mb-2">This Price Includes</p>
+              <p className="text-xs font-bold text-blue-600 uppercase tracking-wide mb-2">This Price Includes</p>
               <div className="grid grid-cols-2 gap-x-6 gap-y-1.5">
                 {INCLUDED_CONCEPTS.map((c, i) => (
                   <p key={i} className="text-sm text-gray-700 flex items-start gap-2">

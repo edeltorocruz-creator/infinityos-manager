@@ -95,7 +95,7 @@ export default function SummaryPage() {
         ) : (
           <>
             {/* Resumen escrito */}
-            <div className="bg-orange-50 border border-orange-200 rounded-xl p-5">
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-5">
               <p className="text-gray-800 leading-relaxed">{summaryText}</p>
             </div>
 

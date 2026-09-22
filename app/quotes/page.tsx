@@ -91,7 +91,7 @@ export default function QuotesPage() {
             <p className="text-gray-500 mt-1">Infinity Wrap Design — Quote Management</p>
           </div>
           <Link href="/quotes/new"
-            className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-5 py-3 rounded-lg font-semibold transition-colors">
+            className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-5 py-3 rounded-lg font-semibold transition-colors">
             <Plus size={20}/>
             Nueva Cotización
           </Link>
@@ -113,7 +113,7 @@ export default function QuotesPage() {
           </div>
           <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
             <p className="text-gray-500 text-sm">Ingresos (total)</p>
-            <p className="text-2xl font-bold text-orange-500">{formatCurrency(stats.revenue)}</p>
+            <p className="text-2xl font-bold text-blue-500">{formatCurrency(stats.revenue)}</p>
           </div>
         </div>
 
@@ -134,7 +134,7 @@ export default function QuotesPage() {
           <div className="text-center py-20 bg-white rounded-xl border border-gray-100">
             <FileText size={48} className="mx-auto text-gray-300 mb-4"/>
             <p className="text-gray-500 text-lg">No hay cotizaciones todavía</p>
-            <Link href="/quotes/new" className="text-orange-500 hover:underline mt-2 inline-block">Crea tu primera cotización →</Link>
+            <Link href="/quotes/new" className="text-blue-500 hover:underline mt-2 inline-block">Crea tu primera cotización →</Link>
           </div>
         ) : (
           <div className="space-y-3">
@@ -146,7 +146,7 @@ export default function QuotesPage() {
 
               return (
                 <div key={quote.id}
-                  className={`bg-white rounded-xl border shadow-sm transition-shadow ${isOpen ? 'border-orange-200 shadow-md' : 'border-gray-100 hover:shadow-md'}`}>
+                  className={`bg-white rounded-xl border shadow-sm transition-shadow ${isOpen ? 'border-blue-200 shadow-md' : 'border-gray-100 hover:shadow-md'}`}>
 
                   {/* ── COLLAPSED ROW ── */}
                   <div className="flex items-center p-5 cursor-pointer select-none flex-wrap gap-2" onClick={() => toggleExpand(quote.id)}>
@@ -251,7 +251,7 @@ export default function QuotesPage() {
                           value={quote.status}
                           onChange={e => updateStatus(quote.id, e.target.value)}
                           onClick={e => e.stopPropagation()}
-                          className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 text-gray-700">
+                          className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 text-gray-700">
                           {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
                         </select>
 

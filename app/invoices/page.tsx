@@ -11,7 +11,7 @@ type InvoiceStatus = 'unpaid' | 'deposit_paid' | 'paid' | 'overdue' | 'cancelled
 
 const STATUS_CONFIG: Record<InvoiceStatus, { label: string; color: string; bg: string }> = {
   unpaid:       { label: 'Unpaid',       color: 'text-red-700',    bg: 'bg-red-50' },
-  deposit_paid: { label: 'Deposit Paid', color: 'text-orange-700', bg: 'bg-orange-50' },
+  deposit_paid: { label: 'Deposit Paid', color: 'text-blue-700', bg: 'bg-blue-50' },
   paid:         { label: 'Paid ✓',       color: 'text-green-700',  bg: 'bg-green-50' },
   overdue:      { label: 'Overdue',      color: 'text-red-800',    bg: 'bg-red-100' },
   cancelled:    { label: 'Cancelled',    color: 'text-gray-500',   bg: 'bg-gray-100' },
@@ -96,12 +96,12 @@ export default function InvoicesPage() {
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-              <FileText size={26} className="text-orange-500"/> Invoices
+              <FileText size={26} className="text-blue-500"/> Invoices
             </h1>
             <p className="text-gray-500 mt-1">Billing & Collections — Infinity Wrap Design</p>
           </div>
           <button onClick={() => router.push('/quotes')}
-            className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-5 py-2.5 rounded-lg font-semibold transition-colors">
+            className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-5 py-2.5 rounded-lg font-semibold transition-colors">
             <Plus size={18}/>Invoice from Quote
           </button>
         </div>
@@ -111,7 +111,7 @@ export default function InvoicesPage() {
           {[
             { label: 'Total Invoiced', value: formatCurrency(stats.totalInvoiced), color: 'text-gray-900', icon: TrendingUp },
             { label: 'Collected', value: formatCurrency(stats.totalCollected), color: 'text-green-600', icon: CheckCircle },
-            { label: 'Outstanding', value: formatCurrency(stats.outstanding), color: 'text-orange-500', icon: DollarSign },
+            { label: 'Outstanding', value: formatCurrency(stats.outstanding), color: 'text-blue-500', icon: DollarSign },
             { label: 'Deposits Pending', value: formatCurrency(stats.depositsPending), color: 'text-blue-600', icon: Clock },
             { label: 'Unpaid', value: stats.unpaid, color: 'text-red-600', icon: AlertCircle },
             { label: 'Overdue', value: stats.overdue, color: 'text-red-700', icon: AlertCircle },
@@ -128,7 +128,7 @@ export default function InvoicesPage() {
           <div className="relative flex-1 min-w-52">
             <Search size={14} className="absolute left-3 top-3 text-gray-400"/>
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search invoices..."
-              className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"/>
+              className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"/>
           </div>
           <div className="flex gap-1.5 flex-wrap">
             {['all', ...STATUSES].map(s => (
@@ -184,7 +184,7 @@ export default function InvoicesPage() {
                     <div className="flex-shrink-0 text-right min-w-36">
                       <p className="text-xl font-bold text-gray-900">{formatCurrency(inv.total)}</p>
                       {inv.status !== 'paid' && (
-                        <p className="text-sm text-orange-500 font-semibold">Balance: {formatCurrency(inv.balance_due)}</p>
+                        <p className="text-sm text-blue-500 font-semibold">Balance: {formatCurrency(inv.balance_due)}</p>
                       )}
                       {inv.status === 'deposit_paid' && (
                         <p className="text-xs text-green-600">Deposit paid ✓</p>
@@ -194,7 +194,7 @@ export default function InvoicesPage() {
                     {/* Quick status update */}
                     <div className="flex-shrink-0" onClick={e => e.stopPropagation()}>
                       <select value={inv.status} onChange={e => updateStatus(inv.id, e.target.value as InvoiceStatus)}
-                        className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-orange-400 cursor-pointer">
+                        className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 cursor-pointer">
                         {STATUSES.map(s => <option key={s} value={s}>{STATUS_CONFIG[s].label}</option>)}
                       </select>
                     </div>

@@ -16,7 +16,7 @@ type LeadStatus = 'new' | 'contacted' | 'quoted' | 'negotiating' | 'won' | 'lost
 const STATUS_CONFIG: Record<LeadStatus, { label: string; color: string; bg: string; ring: string }> = {
   new:         { label: 'New',         color: 'text-blue-700',   bg: 'bg-blue-50',    ring: 'ring-blue-200' },
   contacted:   { label: 'Contacted',   color: 'text-purple-700', bg: 'bg-purple-50',  ring: 'ring-purple-200' },
-  quoted:      { label: 'Quoted',      color: 'text-orange-700', bg: 'bg-orange-50',  ring: 'ring-orange-200' },
+  quoted:      { label: 'Quoted',      color: 'text-blue-700', bg: 'bg-blue-50',  ring: 'ring-blue-200' },
   negotiating: { label: 'Negotiating', color: 'text-yellow-700', bg: 'bg-yellow-50',  ring: 'ring-yellow-200' },
   won:         { label: 'Won',         color: 'text-green-700',  bg: 'bg-green-50',   ring: 'ring-green-200' },
   lost:        { label: 'Lost',        color: 'text-red-700',    bg: 'bg-red-50',     ring: 'ring-red-200' },
@@ -129,7 +129,7 @@ function scoreLead(lead: Lead, quotes: any[]): {
 
 const URGENCY_STYLE = {
   hot:   { dot: 'bg-red-500 animate-pulse', label: 'Hot', text: 'text-red-600', badge: 'bg-red-50 text-red-700' },
-  warm:  { dot: 'bg-orange-400', label: 'Warm', text: 'text-orange-600', badge: 'bg-orange-50 text-orange-700' },
+  warm:  { dot: 'bg-blue-400', label: 'Warm', text: 'text-blue-600', badge: 'bg-blue-50 text-blue-700' },
   cold:  { dot: 'bg-blue-400', label: 'Cold', text: 'text-blue-600', badge: 'bg-blue-50 text-blue-700' },
   stale: { dot: 'bg-gray-300', label: 'Stale', text: 'text-gray-400', badge: 'bg-gray-50 text-gray-500' },
 }
@@ -308,7 +308,7 @@ export default function LeadsPage() {
         <div className="flex justify-between items-start mb-6">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-              <Brain size={28} className="text-orange-500" /> Lead Intelligence
+              <Brain size={28} className="text-blue-500" /> Lead Intelligence
             </h1>
             <p className="text-gray-500 mt-1">AI-powered pipeline — Infinity Wrap Design</p>
           </div>
@@ -318,7 +318,7 @@ export default function LeadsPage() {
               <Zap size={15}/>{loadingAI ? 'Analyzing...' : 'AI Briefing'}
             </button>
             <button onClick={openNew}
-              className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-5 py-2.5 rounded-lg font-semibold transition-colors">
+              className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-5 py-2.5 rounded-lg font-semibold transition-colors">
               <Plus size={18}/> New Lead
             </button>
           </div>
@@ -328,8 +328,8 @@ export default function LeadsPage() {
         {aiInsight && (
           <div className="mb-6 bg-gray-900 rounded-2xl p-5 text-white">
             <div className="flex items-center gap-2 mb-3">
-              <Brain size={16} className="text-orange-400"/>
-              <span className="text-orange-400 font-bold text-sm uppercase tracking-wide">Infinity Manager IA — Today's Briefing</span>
+              <Brain size={16} className="text-blue-400"/>
+              <span className="text-blue-400 font-bold text-sm uppercase tracking-wide">Infinity Manager IA — Today's Briefing</span>
             </div>
             <div className="text-sm text-gray-200 leading-relaxed whitespace-pre-wrap">{aiInsight}</div>
             <button onClick={() => setAiInsight(null)} className="mt-3 text-xs text-gray-500 hover:text-gray-300">Dismiss</button>
@@ -342,10 +342,10 @@ export default function LeadsPage() {
             { label: 'Total', value: stats.total, color: 'text-gray-900', sub: 'leads' },
             { label: 'Active', value: stats.active, color: 'text-blue-600', sub: 'in pipeline' },
             { label: 'Hot', value: stats.hotLeads, color: 'text-red-600', sub: 'need contact' },
-            { label: 'Need Action', value: stats.needsAction, color: 'text-orange-500', sub: 'follow-ups' },
+            { label: 'Need Action', value: stats.needsAction, color: 'text-blue-500', sub: 'follow-ups' },
             { label: 'Won', value: stats.won, color: 'text-green-600', sub: 'converted' },
             { label: 'Close Rate', value: `${stats.conversionRate}%`, color: 'text-purple-600', sub: 'conversion' },
-            { label: 'Pipeline', value: formatCurrency(stats.pipeline), color: 'text-orange-500', sub: 'est. revenue' },
+            { label: 'Pipeline', value: formatCurrency(stats.pipeline), color: 'text-blue-500', sub: 'est. revenue' },
           ].map(s => (
             <div key={s.label} className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
               <p className="text-gray-400 text-xs mb-1">{s.label}</p>
@@ -368,7 +368,7 @@ export default function LeadsPage() {
           <div className="relative flex-1 min-w-52">
             <Search size={14} className="absolute left-3 top-3 text-gray-400"/>
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search leads..."
-              className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"/>
+              className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"/>
           </div>
           <div className="flex gap-1.5 flex-wrap">
             {['all', ...STAGES].map(s => (
@@ -417,7 +417,7 @@ export default function LeadsPage() {
                       </div>
                       {lead.company && <p className="text-gray-500 text-sm">{lead.company}</p>}
                       <div className="flex flex-wrap gap-3 mt-1 text-xs text-gray-500">
-                        {lead.service_interest && <span className="text-orange-600 font-medium">{lead.service_interest}</span>}
+                        {lead.service_interest && <span className="text-blue-600 font-medium">{lead.service_interest}</span>}
                         {lead.phone && <span className="flex items-center gap-1"><Phone size={11}/>{lead.phone}</span>}
                         {lead.email && <span className="flex items-center gap-1"><Mail size={11}/>{lead.email}</span>}
                         <span className="flex items-center gap-1"><Clock size={11}/>{intel.daysSinceContact}d ago</span>
@@ -425,7 +425,7 @@ export default function LeadsPage() {
 
                       {/* AI Insight */}
                       <div className="mt-2 flex items-start gap-1.5">
-                        <Zap size={12} className="text-orange-400 mt-0.5 flex-shrink-0"/>
+                        <Zap size={12} className="text-blue-400 mt-0.5 flex-shrink-0"/>
                         <p className="text-xs text-gray-500 italic">{intel.insight}</p>
                       </div>
 
@@ -433,9 +433,9 @@ export default function LeadsPage() {
                       {intel.actions.length > 0 && (
                         <div className="mt-2 space-y-1">
                           {intel.actions.map((a, i) => (
-                            <div key={i} className="flex items-start gap-1.5 bg-orange-50 rounded-lg px-2.5 py-1.5">
-                              <AlertTriangle size={11} className="text-orange-500 mt-0.5 flex-shrink-0"/>
-                              <p className="text-xs text-orange-700 font-medium">{a}</p>
+                            <div key={i} className="flex items-start gap-1.5 bg-blue-50 rounded-lg px-2.5 py-1.5">
+                              <AlertTriangle size={11} className="text-blue-500 mt-0.5 flex-shrink-0"/>
+                              <p className="text-xs text-blue-700 font-medium">{a}</p>
                             </div>
                           ))}
                         </div>
@@ -451,7 +451,7 @@ export default function LeadsPage() {
                         </div>
                       )}
                       <select value={lead.status} onChange={e => updateStatus(lead.id, e.target.value as LeadStatus)}
-                        className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-orange-400 bg-white cursor-pointer">
+                        className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-400 bg-white cursor-pointer">
                         {STAGES.map(s => <option key={s} value={s}>{STATUS_CONFIG[s].label}</option>)}
                       </select>
                       <div className="flex gap-1.5">
@@ -517,7 +517,7 @@ export default function LeadsPage() {
                         {l.company && <p className="text-xs text-gray-400 mt-0.5">{l.company}</p>}
                         <div className="flex items-center justify-between mt-1.5">
                           {l.estimated_value
-                            ? <span className="text-xs font-bold text-orange-500">{formatCurrency(l.estimated_value)}</span>
+                            ? <span className="text-xs font-bold text-blue-500">{formatCurrency(l.estimated_value)}</span>
                             : <span/>}
                           <span className={`text-xs font-bold ${GRADE_STYLE[l.intel.grade]} px-1.5 py-0.5 rounded text-white`}>{l.intel.grade}</span>
                         </div>
@@ -548,7 +548,7 @@ export default function LeadsPage() {
                     </div>
                     <div className="flex gap-3 text-xs text-gray-400 mt-0.5">
                       {lead.company && <span>{lead.company}</span>}
-                      {lead.service_interest && <span className="text-orange-500">{lead.service_interest}</span>}
+                      {lead.service_interest && <span className="text-blue-500">{lead.service_interest}</span>}
                       <span>{intel.daysSinceContact}d ago</span>
                     </div>
                   </div>
@@ -594,26 +594,26 @@ export default function LeadsPage() {
                   <input type={f.type || 'text'} value={(form as any)[f.key]}
                     onChange={e => setForm({ ...form, [f.key]: e.target.value })}
                     placeholder={f.placeholder || ''}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"/>
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"/>
                 </div>
               ))}
               <div className="col-span-2">
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Status</label>
                 <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value as LeadStatus })}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400">
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
                   {STAGES.map(s => <option key={s} value={s}>{STATUS_CONFIG[s].label}</option>)}
                 </select>
               </div>
               <div className="col-span-2">
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Notes</label>
                 <textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} rows={2}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 resize-none"/>
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none"/>
               </div>
             </div>
             <div className="flex gap-3 mt-5">
               <button onClick={() => setShowForm(false)} className="flex-1 border border-gray-200 text-gray-600 py-2.5 rounded-lg font-medium hover:bg-gray-50 transition-colors">Cancel</button>
               <button onClick={saveLead} disabled={saving || !form.name.trim()}
-                className="flex-1 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white py-2.5 rounded-lg font-semibold transition-colors">
+                className="flex-1 bg-blue-500 hover:bg-blue-600 disabled:opacity-50 text-white py-2.5 rounded-lg font-semibold transition-colors">
                 {saving ? 'Saving...' : (editing ? 'Update' : 'Add Lead')}
               </button>
             </div>

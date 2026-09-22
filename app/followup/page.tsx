@@ -43,7 +43,7 @@ const METHOD_CONFIG: Record<ContactMethod, { label: string; icon: any; color: st
   call:      { label: 'Call',      icon: Phone,          color: 'text-blue-600 bg-blue-50' },
   text:      { label: 'Text',      icon: MessageSquare,  color: 'text-green-600 bg-green-50' },
   email:     { label: 'Email',     icon: Mail,           color: 'text-purple-600 bg-purple-50' },
-  visit:     { label: 'Visit',     icon: Users,          color: 'text-orange-600 bg-orange-50' },
+  visit:     { label: 'Visit',     icon: Users,          color: 'text-blue-600 bg-blue-50' },
   whatsapp:  { label: 'WhatsApp',  icon: MessageSquare,  color: 'text-green-700 bg-green-50' },
   other:     { label: 'Other',     icon: Clock,          color: 'text-gray-600 bg-gray-50' },
 }
@@ -62,7 +62,7 @@ function getUrgency(lead: Lead): { level: 'hot' | 'warm' | 'cold' | 'stale'; day
 }
 
 const URGENCY_STYLE = {
-  hot:   { card: 'border-orange-200 bg-orange-50/30', dot: 'bg-red-500 animate-pulse', badge: 'bg-orange-100 text-orange-700', bar: 'bg-orange-400' },
+  hot:   { card: 'border-blue-200 bg-blue-50/30', dot: 'bg-red-500 animate-pulse', badge: 'bg-blue-100 text-blue-700', bar: 'bg-blue-400' },
   warm:  { card: 'border-yellow-200 bg-yellow-50/20', dot: 'bg-yellow-400',            badge: 'bg-yellow-100 text-yellow-700', bar: 'bg-yellow-400' },
   cold:  { card: 'border-blue-200 bg-blue-50/10',    dot: 'bg-blue-400',              badge: 'bg-blue-100 text-blue-700',    bar: 'bg-blue-400' },
   stale: { card: 'border-red-300 bg-red-50/20',      dot: 'bg-red-600',               badge: 'bg-red-100 text-red-700',     bar: 'bg-red-500' },
@@ -70,7 +70,7 @@ const URGENCY_STYLE = {
 
 const BUCKET_CONFIG = [
   { key: '0-3',  label: 'Contactar Hoy',   days: 3,  color: 'text-red-600',    bg: 'bg-red-50 border-red-200' },
-  { key: '3-7',  label: '3–7 días',        days: 7,  color: 'text-orange-600', bg: 'bg-orange-50 border-orange-200' },
+  { key: '3-7',  label: '3–7 días',        days: 7,  color: 'text-blue-600', bg: 'bg-blue-50 border-blue-200' },
   { key: '7-14', label: '7–14 días',       days: 14, color: 'text-yellow-600', bg: 'bg-yellow-50 border-yellow-200' },
   { key: '14+',  label: 'Más de 14 días',  days: 999,color: 'text-gray-500',   bg: 'bg-gray-50 border-gray-200' },
 ]
@@ -221,7 +221,7 @@ export default function FollowUpPage() {
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-            <Flame size={26} className="text-orange-500"/> Follow-up Reminders
+            <Flame size={26} className="text-blue-500"/> Follow-up Reminders
           </h1>
           <p className="text-gray-500 mt-1">Contactar hoy — convierte leads fríos en dinero</p>
         </div>
@@ -232,7 +232,7 @@ export default function FollowUpPage() {
             { label: 'Pendientes hoy',    value: stats.todayCount,                icon: AlertTriangle, color: 'text-red-500',    bg: 'bg-red-50' },
             { label: 'Total activos',     value: stats.total,                     icon: Users,         color: 'text-blue-600',   bg: 'bg-blue-50' },
             { label: 'Ignorados +14d',    value: stats.staleCount,                icon: Clock,         color: 'text-gray-500',   bg: 'bg-gray-50' },
-            { label: 'Valor en pipeline', value: formatCurrency(stats.totalValue),icon: DollarSign,    color: 'text-orange-500', bg: 'bg-orange-50' },
+            { label: 'Valor en pipeline', value: formatCurrency(stats.totalValue),icon: DollarSign,    color: 'text-blue-500', bg: 'bg-blue-50' },
           ].map(s => (
             <div key={s.label} className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
               <div className={`inline-flex p-2 rounded-lg ${s.bg} mb-2`}>
@@ -307,14 +307,14 @@ export default function FollowUpPage() {
                         </div>
                         {lead.company && <p className="text-sm text-gray-500">{lead.company}</p>}
                         <div className="flex flex-wrap gap-3 mt-1 text-xs text-gray-400">
-                          {lead.service_interest && <span className="text-orange-500 font-medium">{lead.service_interest}</span>}
+                          {lead.service_interest && <span className="text-blue-500 font-medium">{lead.service_interest}</span>}
                           {lead.phone && <span className="flex items-center gap-1"><Phone size={11}/>{lead.phone}</span>}
                           {lead.email && <span className="flex items-center gap-1"><Mail size={11}/>{lead.email}</span>}
                         </div>
                         {/* Next followup */}
                         <div className="flex items-center gap-1.5 mt-2">
-                          <Clock size={12} className="text-orange-400"/>
-                          <span className="text-xs text-orange-600 font-medium">
+                          <Clock size={12} className="text-blue-400"/>
+                          <span className="text-xs text-blue-600 font-medium">
                             Próximo seguimiento: {nextDate}
                           </span>
                         </div>
@@ -334,7 +334,7 @@ export default function FollowUpPage() {
                           </div>
                         )}
                         <button onClick={() => setLogModal(lead)}
-                          className="flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors">
+                          className="flex items-center gap-1.5 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors">
                           <CheckCircle size={14}/>Contactado
                         </button>
                         <div className="flex gap-1">
@@ -424,7 +424,7 @@ export default function FollowUpPage() {
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1 block">Notas del contacto</label>
                 <textarea value={logNotes} onChange={e => setLogNotes(e.target.value)} rows={3}
                   placeholder="Qué se habló, interés del cliente, objeciones..."
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 resize-none"/>
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none"/>
               </div>
 
               {/* Next followup */}
@@ -434,7 +434,7 @@ export default function FollowUpPage() {
                 </label>
                 <input type="date" value={logNextDate} onChange={e => setLogNextDate(e.target.value)}
                   min={new Date().toISOString().split('T')[0]}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"/>
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"/>
               </div>
             </div>
 
@@ -444,7 +444,7 @@ export default function FollowUpPage() {
                 Cancelar
               </button>
               <button onClick={logContact} disabled={saving}
-                className="flex-1 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white py-2.5 rounded-xl font-bold transition-colors">
+                className="flex-1 bg-blue-500 hover:bg-blue-600 disabled:opacity-50 text-white py-2.5 rounded-xl font-bold transition-colors">
                 {saving ? 'Guardando...' : '✓ Confirmar contacto'}
               </button>
             </div>

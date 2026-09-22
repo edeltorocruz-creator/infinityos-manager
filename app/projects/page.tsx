@@ -13,7 +13,7 @@ const STATUS_CONFIG: Record<ProjectStatus, { label: string; color: string; bg: s
   quoted:        { label: 'Quoted',              color: 'text-gray-600',    bg: 'bg-gray-100',    step: 1 },
   deposit_paid:  { label: '🔧 Ready for Prod',  color: 'text-blue-700',   bg: 'bg-blue-100',   step: 2 },
   in_production: { label: 'In Production',       color: 'text-purple-700', bg: 'bg-purple-100', step: 3 },
-  installation:  { label: 'Installation',        color: 'text-orange-700', bg: 'bg-orange-100', step: 4 },
+  installation:  { label: 'Installation',        color: 'text-blue-700', bg: 'bg-blue-100', step: 4 },
   completed:     { label: '✓ Completed',         color: 'text-green-700',  bg: 'bg-green-100',  step: 5 },
   invoiced:      { label: 'Invoiced',            color: 'text-teal-700',   bg: 'bg-teal-100',   step: 6 },
 }
@@ -113,7 +113,7 @@ export default function ProjectsPage() {
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-              <FolderOpen size={26} className="text-orange-500"/> Projects
+              <FolderOpen size={26} className="text-blue-500"/> Projects
             </h1>
             <p className="text-gray-500 mt-1">Production pipeline — Infinity Wrap Design</p>
           </div>
@@ -126,7 +126,7 @@ export default function ProjectsPage() {
             { label: 'Active',         value: stats.active,                     color: 'text-blue-600' },
             { label: 'Ready for Prod', value: stats.readyForProd,               color: 'text-purple-600' },
             { label: 'Completed',      value: stats.completed,                  color: 'text-green-600' },
-            { label: 'Total Value',    value: formatCurrency(stats.totalValue), color: 'text-orange-500' },
+            { label: 'Total Value',    value: formatCurrency(stats.totalValue), color: 'text-blue-500' },
           ].map(s => (
             <div key={s.label} className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
               <p className="text-gray-400 text-xs mb-1">{s.label}</p>
@@ -161,7 +161,7 @@ export default function ProjectsPage() {
           <div className="relative flex-1 min-w-52">
             <Search size={14} className="absolute left-3 top-3 text-gray-400"/>
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search projects..."
-              className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"/>
+              className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"/>
           </div>
         </div>
 
@@ -204,7 +204,7 @@ export default function ProjectsPage() {
                         )}
                         {project.invoice && (
                           <button onClick={() => router.push(`/invoices/${project.invoice_id}`)}
-                            className={`flex items-center gap-1 text-xs font-medium ${project.invoice.status === 'paid' ? 'text-green-600 hover:text-green-800' : 'text-orange-600 hover:text-orange-800'}`}>
+                            className={`flex items-center gap-1 text-xs font-medium ${project.invoice.status === 'paid' ? 'text-green-600 hover:text-green-800' : 'text-blue-600 hover:text-blue-800'}`}>
                             <Receipt size={11}/>{project.invoice.invoice_number}
                             {project.invoice.status === 'paid' ? ' ✓' : project.invoice.status === 'deposit_paid' ? ' (dep ✓)' : ''}
                           </button>
@@ -227,7 +227,7 @@ export default function ProjectsPage() {
                       )}
                       <select value={project.status}
                         onChange={e => updateStatus(project.id, e.target.value as ProjectStatus)}
-                        className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-orange-400 cursor-pointer">
+                        className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 cursor-pointer">
                         {PIPELINE_STEPS.map(s => (
                           <option key={s} value={s}>{STATUS_CONFIG[s].label.replace('🔧 ','').replace('✓ ','')}</option>
                         ))}

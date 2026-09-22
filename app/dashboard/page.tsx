@@ -139,7 +139,7 @@ export default function DashboardPage() {
         {/* ── QUICK ACTIONS ── */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-6">
           {[
-            { label: 'New Quote',   icon: FileText,   color: 'bg-orange-500', action: () => router.push('/quotes/new') },
+            { label: 'New Quote',   icon: FileText,   color: 'bg-blue-500', action: () => router.push('/quotes/new') },
             { label: 'Add Expense', icon: Receipt,    color: 'bg-red-500',    action: () => setShowExpenseModal(true) },
             { label: 'Clientes',    icon: Users,      color: 'bg-blue-500',   action: () => router.push('/clients') },
             { label: 'Calendario',  icon: CalendarIcon, color: 'bg-purple-500', action: () => router.push('/calendar') },
@@ -174,7 +174,7 @@ export default function DashboardPage() {
               <FileText size={16} className="text-blue-500"/>Cotizaciones Abiertas
               {d.openQuotes.length > 0 && <span className="text-xs font-black px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">{d.openQuotes.length}</span>}
             </p>
-            <button onClick={() => router.push('/quotes')} className="text-xs text-orange-500 font-semibold hover:text-orange-700 flex items-center gap-1">
+            <button onClick={() => router.push('/quotes')} className="text-xs text-blue-500 font-semibold hover:text-blue-700 flex items-center gap-1">
               Ver todas <ChevronRight size={12}/>
             </button>
           </div>
@@ -216,7 +216,7 @@ export default function DashboardPage() {
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
             <div className="flex items-center justify-between mb-3">
               <p className="font-bold text-gray-900 flex items-center gap-2"><Receipt size={16} className="text-red-500"/>Gastos Recientes</p>
-              <button onClick={() => router.push('/expenses')} className="text-xs text-orange-500 font-semibold hover:text-orange-700 flex items-center gap-1">
+              <button onClick={() => router.push('/expenses')} className="text-xs text-blue-500 font-semibold hover:text-blue-700 flex items-center gap-1">
                 Ver todos <ChevronRight size={12}/>
               </button>
             </div>
@@ -240,7 +240,7 @@ export default function DashboardPage() {
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
             <div className="flex items-center justify-between mb-3">
               <p className="font-bold text-gray-900 flex items-center gap-2"><CalendarIcon size={16} className="text-purple-500"/>Próximos Eventos</p>
-              <button onClick={() => router.push('/calendar')} className="text-xs text-orange-500 font-semibold hover:text-orange-700 flex items-center gap-1">
+              <button onClick={() => router.push('/calendar')} className="text-xs text-blue-500 font-semibold hover:text-blue-700 flex items-center gap-1">
                 Ver calendario <ChevronRight size={12}/>
               </button>
             </div>
@@ -261,7 +261,7 @@ export default function DashboardPage() {
 
         {/* ── NET SUMMARY ── */}
         <div className="bg-gray-900 rounded-2xl p-5 text-white">
-          <p className="text-xs font-bold text-orange-400 uppercase tracking-wide mb-3 flex items-center gap-2"><TrendingUp size={12}/>Resumen del Mes</p>
+          <p className="text-xs font-bold text-blue-400 uppercase tracking-wide mb-3 flex items-center gap-2"><TrendingUp size={12}/>Resumen del Mes</p>
           <div className="grid grid-cols-3 gap-4">
             <div>
               <p className="text-gray-400 text-xs">Ingresos</p>
@@ -295,18 +295,18 @@ export default function DashboardPage() {
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1 block">Description *</label>
                 <input value={quickExpense.description} onChange={e => setQuickExpense({ ...quickExpense, description: e.target.value })}
                   placeholder="What was purchased?"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"/>
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"/>
               </div>
               <div>
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1 block">Amount ($) *</label>
                 <input type="number" step="0.01" value={quickExpense.amount} onChange={e => setQuickExpense({ ...quickExpense, amount: e.target.value })}
                   placeholder="0.00"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"/>
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"/>
               </div>
               <div>
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1 block">Category</label>
                 <select value={quickExpense.category} onChange={e => setQuickExpense({ ...quickExpense, category: e.target.value })}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400">
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
                   {['Materials','Equipment','Vehicle','Labor','Marketing','Software','Supplies','Fuel','Insurance','Other'].map(c =>
                     <option key={c} value={c}>{c}</option>
                   )}

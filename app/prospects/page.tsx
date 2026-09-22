@@ -271,7 +271,7 @@ Keep it under 200 words total. Format with clear labels: TEXT: / CALL: / HOOK:`
     totalPipeline: prospects.filter(p => p.status === 'new').reduce((s, p) => s + p.estimated_value, 0),
   }), [prospects])
 
-  const ic = "w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 bg-white"
+  const ic = "w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
   const lb = "text-xs font-bold text-gray-500 uppercase tracking-wide mb-1 block"
 
   if (loading) return <div className="flex items-center justify-center h-screen text-gray-400">Loading prospect intelligence...</div>
@@ -284,25 +284,25 @@ Keep it under 200 words total. Format with clear labels: TEXT: / CALL: / HOOK:`
         <div className="flex justify-between items-start mb-6">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-              <Target size={26} className="text-orange-500"/> Prospect Intelligence
+              <Target size={26} className="text-blue-500"/> Prospect Intelligence
             </h1>
             <p className="text-gray-500 mt-1">Businesses that need wraps — go get them</p>
           </div>
           <div className="flex gap-2 flex-wrap justify-end">
             <button onClick={generateStrategy} disabled={loadingStrategy}
               className="flex items-center gap-2 bg-gray-900 hover:bg-gray-700 disabled:opacity-50 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors">
-              {loadingStrategy ? <Loader size={14} className="animate-spin"/> : <Sparkles size={14} className="text-orange-400"/>}
+              {loadingStrategy ? <Loader size={14} className="animate-spin"/> : <Sparkles size={14} className="text-blue-400"/>}
               Weekly Strategy
             </button>
             {prospects.length === 0 && (
               <button onClick={autoGenerateProspects} disabled={generatingAll}
-                className="flex items-center gap-2 bg-orange-100 hover:bg-orange-200 text-orange-700 px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors">
+                className="flex items-center gap-2 bg-blue-100 hover:bg-blue-200 text-blue-700 px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors">
                 {generatingAll ? <Loader size={14} className="animate-spin"/> : <Zap size={14}/>}
                 Auto-Generate
               </button>
             )}
             <button onClick={() => setShowAddForm(true)}
-              className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors">
+              className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors">
               <Plus size={16}/>Add Prospect
             </button>
           </div>
@@ -311,7 +311,7 @@ Keep it under 200 words total. Format with clear labels: TEXT: / CALL: / HOOK:`
         {/* Business Insights */}
         {insights && (
           <div className="bg-gray-900 rounded-2xl p-5 mb-6 text-white">
-            <p className="text-xs font-bold text-orange-400 uppercase tracking-wide mb-3 flex items-center gap-2">
+            <p className="text-xs font-bold text-blue-400 uppercase tracking-wide mb-3 flex items-center gap-2">
               <TrendingUp size={12}/>Your Business Intelligence
             </p>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
@@ -334,10 +334,10 @@ Keep it under 200 words total. Format with clear labels: TEXT: / CALL: / HOOK:`
 
         {/* AI Weekly Strategy */}
         {aiStrategy && (
-          <div className="bg-white border border-orange-200 rounded-2xl p-5 mb-6">
+          <div className="bg-white border border-blue-200 rounded-2xl p-5 mb-6">
             <div className="flex items-center justify-between mb-3">
               <p className="font-bold text-gray-900 flex items-center gap-2">
-                <Sparkles size={16} className="text-orange-500"/>Weekly Outreach Strategy
+                <Sparkles size={16} className="text-blue-500"/>Weekly Outreach Strategy
               </p>
               <button onClick={() => setAiStrategy(null)} className="text-gray-400 hover:text-gray-600"><X size={16}/></button>
             </div>
@@ -351,7 +351,7 @@ Keep it under 200 words total. Format with clear labels: TEXT: / CALL: / HOOK:`
             { label: 'New',           value: stats.new,                            color: 'text-blue-600' },
             { label: 'Contacted',     value: stats.contacted,                      color: 'text-yellow-600' },
             { label: 'Converted',     value: stats.converted,                      color: 'text-green-600' },
-            { label: 'Potential $',   value: formatCurrency(stats.totalPipeline),  color: 'text-orange-500' },
+            { label: 'Potential $',   value: formatCurrency(stats.totalPipeline),  color: 'text-blue-500' },
           ].map(s => (
             <div key={s.label} className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
               <p className="text-gray-400 text-xs mb-1">{s.label}</p>
@@ -377,7 +377,7 @@ Keep it under 200 words total. Format with clear labels: TEXT: / CALL: / HOOK:`
             <p className="text-gray-600 font-semibold text-lg mb-1">No prospects yet</p>
             <p className="text-gray-400 text-sm mb-6">Let the system suggest businesses that need wraps in your area</p>
             <button onClick={autoGenerateProspects} disabled={generatingAll}
-              className="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-xl font-semibold transition-colors">
+              className="inline-flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-xl font-semibold transition-colors">
               {generatingAll ? <Loader size={16} className="animate-spin"/> : <Zap size={16}/>}
               Auto-generate from local business types
             </button>
@@ -431,7 +431,7 @@ Keep it under 200 words total. Format with clear labels: TEXT: / CALL: / HOOK:`
                   {/* Tags */}
                   <div className="flex flex-wrap gap-1.5 mb-3">
                     {prospect.tags?.map((tag: string) => (
-                      <span key={tag} className="text-xs bg-orange-50 text-orange-600 px-2 py-0.5 rounded-full font-medium">{tag}</span>
+                      <span key={tag} className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-medium">{tag}</span>
                     ))}
                   </div>
 
@@ -491,11 +491,11 @@ Keep it under 200 words total. Format with clear labels: TEXT: / CALL: / HOOK:`
                     })
                     await loadData()
                   }}
-                  className="flex items-center gap-2 px-3 py-2 bg-gray-50 hover:bg-orange-50 border border-gray-200 hover:border-orange-300 rounded-xl text-sm transition-colors text-left">
+                  className="flex items-center gap-2 px-3 py-2 bg-gray-50 hover:bg-blue-50 border border-gray-200 hover:border-blue-300 rounded-xl text-sm transition-colors text-left">
                   <span>{t.icon}</span>
                   <div className="min-w-0">
                     <p className="font-medium text-gray-700 text-xs truncate">{t.type}</p>
-                    <p className="text-orange-500 text-xs font-bold">{formatCurrency(t.avgValue)}</p>
+                    <p className="text-blue-500 text-xs font-bold">{formatCurrency(t.avgValue)}</p>
                   </div>
                 </button>
               ))}
@@ -567,7 +567,7 @@ Keep it under 200 words total. Format with clear labels: TEXT: / CALL: / HOOK:`
             <div className="flex gap-3 mt-5">
               <button onClick={() => setShowAddForm(false)} className="flex-1 border border-gray-200 text-gray-600 py-2.5 rounded-xl font-medium hover:bg-gray-50">Cancel</button>
               <button onClick={saveProspect} disabled={savingForm || (!form.company_name.trim() && !form.contact_name.trim())}
-                className="flex-1 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white py-2.5 rounded-xl font-bold">
+                className="flex-1 bg-blue-500 hover:bg-blue-600 disabled:opacity-50 text-white py-2.5 rounded-xl font-bold">
                 {savingForm ? 'Saving...' : 'Add Prospect'}
               </button>
             </div>

@@ -56,7 +56,7 @@ export default function LoginPage() {
       <div className="bg-white border border-gray-200 rounded-2xl shadow-xl px-10 py-12 w-full max-w-[400px]">
         <div className="text-center mb-10">
           <div className="mx-auto mb-4 w-14 h-14 rounded-2xl flex items-center justify-center text-2xl text-white font-bold shadow-lg"
-               style={{ background: 'linear-gradient(135deg,#ff6b00,#ff9500)', boxShadow: '0 8px 24px rgba(255,107,0,0.3)' }}>
+               style={{ background: 'linear-gradient(135deg,#3b82f6,#60a5fa)', boxShadow: '0 8px 24px rgba(59,130,246,0.3)' }}>
             ∞
           </div>
           <h1 className="text-gray-900 text-xl font-extrabold m-0">Infinity Wrap</h1>
@@ -69,7 +69,7 @@ export default function LoginPage() {
             ref={userRef} type="text" autoComplete="username" value={username}
             onChange={e => setUsername(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && doLogin()}
-            className="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-900 outline-none focus:border-orange-500 transition-colors"
+            className="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-900 outline-none focus:border-blue-500 transition-colors"
           />
         </div>
 
@@ -79,7 +79,7 @@ export default function LoginPage() {
             ref={passRef} type="password" autoComplete="current-password" placeholder="••••••••"
             value={password} onChange={e => setPassword(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && doLogin()}
-            className="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-900 outline-none focus:border-orange-500 transition-colors"
+            className="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-900 outline-none focus:border-blue-500 transition-colors"
           />
         </div>
 
@@ -93,8 +93,8 @@ export default function LoginPage() {
           onClick={() => doLogin()} disabled={loading}
           className="w-full rounded-lg py-3.5 text-white text-[15px] font-bold transition-colors disabled:cursor-not-allowed"
           style={{
-            background: loading ? '#9ca3af' : 'linear-gradient(135deg,#ff6b00,#ff9500)',
-            boxShadow: loading ? 'none' : '0 4px 15px rgba(255,107,0,0.3)',
+            background: loading ? '#9ca3af' : 'linear-gradient(135deg,#3b82f6,#60a5fa)',
+            boxShadow: loading ? 'none' : '0 4px 15px rgba(59,130,246,0.3)',
           }}
         >
           {loading ? 'Entrando...' : 'Entrar →'}

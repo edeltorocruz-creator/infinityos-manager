@@ -12,7 +12,7 @@ type InvoiceStatus = 'unpaid' | 'deposit_paid' | 'paid' | 'overdue' | 'cancelled
 
 const STATUS_COLORS: Record<string, string> = {
   unpaid:       'bg-red-100 text-red-700',
-  deposit_paid: 'bg-orange-100 text-orange-700',
+  deposit_paid: 'bg-blue-100 text-blue-700',
   paid:         'bg-green-100 text-green-700',
   overdue:      'bg-red-200 text-red-800',
   cancelled:    'bg-gray-100 text-gray-500',
@@ -144,7 +144,7 @@ export default function InvoiceDetailPage() {
     quoted:       { label: 'Quoted',              color: 'bg-gray-100 text-gray-600' },
     deposit_paid: { label: '🔧 Ready for Production', color: 'bg-blue-100 text-blue-700' },
     in_production:{ label: 'In Production',       color: 'bg-purple-100 text-purple-700' },
-    installation: { label: 'Installation',        color: 'bg-orange-100 text-orange-700' },
+    installation: { label: 'Installation',        color: 'bg-blue-100 text-blue-700' },
     completed:    { label: '✓ Completed',         color: 'bg-green-100 text-green-700' },
     invoiced:     { label: 'Invoiced',            color: 'bg-teal-100 text-teal-700' },
   }
@@ -175,7 +175,7 @@ export default function InvoiceDetailPage() {
           <div className="flex items-center gap-2 flex-wrap justify-end">
             {!isFullyPaid && !isDepositPaid && invoice.status !== 'cancelled' && (
               <button onClick={() => setShowPayModal('deposit')} disabled={updating}
-                className="flex items-center gap-1.5 bg-orange-100 hover:bg-orange-200 text-orange-700 px-4 py-2 rounded-lg text-sm font-semibold">
+                className="flex items-center gap-1.5 bg-blue-100 hover:bg-blue-200 text-blue-700 px-4 py-2 rounded-lg text-sm font-semibold">
                 <DollarSign size={14}/>Deposit Paid
               </button>
             )}
@@ -202,7 +202,7 @@ export default function InvoiceDetailPage() {
               <Printer size={14}/>Print
             </button>
             <a href={`/api/pdf/invoice/${id}`} target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 text-white px-3 py-2 rounded-lg text-sm font-bold" style={{textDecoration:'none'}}>
+              className="flex items-center gap-1.5 bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-lg text-sm font-bold" style={{textDecoration:'none'}}>
               <FileText size={14}/> Download PDF
             </a>
           </div>
@@ -260,20 +260,20 @@ export default function InvoiceDetailPage() {
           <div className="bg-gray-900 text-white px-8 py-6">
             <div className="flex justify-between items-start">
               <div>
-                <div className="text-2xl font-black tracking-tight text-orange-400">INFINITY</div>
+                <div className="text-2xl font-black tracking-tight text-blue-400">INFINITY</div>
                 <div className="text-2xl font-black tracking-tight">WRAP DESIGN</div>
                 <div className="text-gray-400 text-sm mt-1">(919) 649-0755</div>
                 <div className="text-gray-400 text-sm">infinitywrapdesign@gmail.com</div>
               </div>
               <div className="text-right">
-                <div className="text-4xl font-black text-orange-400">INVOICE</div>
+                <div className="text-4xl font-black text-blue-400">INVOICE</div>
                 <div className="text-gray-300 text-sm mt-2">{invoice.invoice_number}</div>
                 {invoice.quote?.quote_number && <div className="text-gray-400 text-xs">Quote: {invoice.quote.quote_number}</div>}
                 <div className="text-gray-300 text-sm">Date: {formatDate()}</div>
                 {invoice.due_date && <div className="text-gray-300 text-sm">Due: {new Date(invoice.due_date).toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' })}</div>}
                 <div className={`mt-2 inline-block text-xs font-bold px-3 py-1 rounded-full ${
                   invoice.status === 'paid' ? 'bg-green-500 text-white' :
-                  invoice.status === 'deposit_paid' ? 'bg-orange-500 text-white' :
+                  invoice.status === 'deposit_paid' ? 'bg-blue-500 text-white' :
                   invoice.status === 'overdue' ? 'bg-red-600 text-white' : 'bg-gray-500 text-white'}`}>
                   {invoice.status.replace('_',' ').toUpperCase()}
                 </div>
@@ -281,7 +281,7 @@ export default function InvoiceDetailPage() {
             </div>
           </div>
 
-          <div className="px-8 py-5 bg-orange-50 border-b border-gray-100">
+          <div className="px-8 py-5 bg-blue-50 border-b border-gray-100">
             <div className="grid grid-cols-2 gap-6">
               <div>
                 <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">Bill To</p>
@@ -344,16 +344,16 @@ export default function InvoiceDetailPage() {
                 </div>
                 <div className="flex justify-between py-2 bg-gray-900 rounded-lg px-3 mt-2">
                   <span className="text-white font-bold text-base">TOTAL</span>
-                  <span className="text-orange-400 font-black text-xl">{formatCurrency(invoice.total)}</span>
+                  <span className="text-blue-400 font-black text-xl">{formatCurrency(invoice.total)}</span>
                 </div>
-                <div className={`rounded-lg p-4 mt-2 space-y-2.5 ${isFullyPaid ? 'bg-green-50 border border-green-200' : 'bg-orange-50 border border-orange-100'}`}>
+                <div className={`rounded-lg p-4 mt-2 space-y-2.5 ${isFullyPaid ? 'bg-green-50 border border-green-200' : 'bg-blue-50 border border-blue-100'}`}>
                   <div className="flex justify-between text-sm">
-                    <span className={`font-bold ${isFullyPaid ? 'text-green-700' : 'text-orange-700'}`}>
+                    <span className={`font-bold ${isFullyPaid ? 'text-green-700' : 'text-blue-700'}`}>
                       {isDepositPaid || isFullyPaid ? '✓ ' : ''}50% Deposit
                     </span>
-                    <span className={`font-black ${isFullyPaid ? 'text-green-700' : 'text-orange-700'}`}>{formatCurrency(invoice.deposit_amount)}</span>
+                    <span className={`font-black ${isFullyPaid ? 'text-green-700' : 'text-blue-700'}`}>{formatCurrency(invoice.deposit_amount)}</span>
                   </div>
-                  <div className="flex justify-between text-sm border-t border-orange-200 pt-2.5">
+                  <div className="flex justify-between text-sm border-t border-blue-200 pt-2.5">
                     <span className={`font-bold ${isFullyPaid ? 'text-green-700' : 'text-gray-700'}`}>
                       {isFullyPaid ? '✓ Balance — PAID IN FULL' : 'Balance Due on Completion'}
                     </span>
@@ -435,7 +435,7 @@ export default function InvoiceDetailPage() {
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1 block">Notes (optional)</label>
                 <input value={payNotes} onChange={e => setPayNotes(e.target.value)}
                   placeholder="Check #, confirmation, reference..."
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"/>
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"/>
               </div>
             </div>
             <div className="flex gap-3 mt-6">

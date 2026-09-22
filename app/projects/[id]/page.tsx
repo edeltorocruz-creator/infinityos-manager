@@ -15,7 +15,7 @@ const STATUS_LABELS: Record<string, string> = {
 }
 const STATUS_COLORS: Record<string, string> = {
   quoted: 'bg-gray-100 text-gray-700', deposit_paid: 'bg-blue-100 text-blue-700',
-  in_production: 'bg-purple-100 text-purple-700', installation: 'bg-orange-100 text-orange-700',
+  in_production: 'bg-purple-100 text-purple-700', installation: 'bg-blue-100 text-blue-700',
   completed: 'bg-green-100 text-green-700', invoiced: 'bg-teal-100 text-teal-700',
 }
 
@@ -56,7 +56,7 @@ export default function ProjectDetailPage() {
   if (!project) return (
     <div className="flex flex-col items-center justify-center h-screen text-gray-400 gap-4">
       <p>Project not found</p>
-      <button onClick={() => router.push('/projects')} className="text-orange-500 font-semibold">← Back to Projects</button>
+      <button onClick={() => router.push('/projects')} className="text-blue-500 font-semibold">← Back to Projects</button>
     </div>
   )
 
@@ -88,10 +88,10 @@ export default function ProjectDetailPage() {
                 <button onClick={() => updateStatus(step)}
                   className={`flex flex-col items-center px-3 py-2 rounded-lg text-xs font-semibold transition-colors border ${
                     step === project.status
-                      ? 'bg-orange-500 text-white border-orange-500'
+                      ? 'bg-blue-500 text-white border-blue-500'
                       : i < currentStep
                         ? 'bg-green-50 text-green-700 border-green-200'
-                        : 'bg-gray-50 text-gray-500 border-gray-200 hover:border-orange-300'
+                        : 'bg-gray-50 text-gray-500 border-gray-200 hover:border-blue-300'
                   }`}>
                   {i < currentStep ? '✓' : i + 1}
                   <span className="mt-0.5 whitespace-nowrap">{STATUS_LABELS[step].replace('🔧 ','').replace('✓ ','')}</span>
@@ -139,12 +139,12 @@ export default function ProjectDetailPage() {
               </div>
             )}
             {project.invoice && (
-              <div className="flex items-center justify-between p-3 bg-orange-50 rounded-xl">
+              <div className="flex items-center justify-between p-3 bg-blue-50 rounded-xl">
                 <div className="flex items-center gap-2">
-                  <Receipt size={16} className="text-orange-500"/>
+                  <Receipt size={16} className="text-blue-500"/>
                   <div>
                     <p className="text-sm font-semibold text-gray-900">{project.invoice.invoice_number}</p>
-                    <p className={`text-xs font-medium ${project.invoice.status === 'paid' ? 'text-green-600' : project.invoice.status === 'deposit_paid' ? 'text-orange-600' : 'text-gray-500'}`}>
+                    <p className={`text-xs font-medium ${project.invoice.status === 'paid' ? 'text-green-600' : project.invoice.status === 'deposit_paid' ? 'text-blue-600' : 'text-gray-500'}`}>
                       {project.invoice.status === 'paid' ? 'Paid in full ✓' : project.invoice.status === 'deposit_paid' ? 'Deposit paid ✓' : project.invoice.status}
                     </p>
                   </div>
@@ -152,10 +152,10 @@ export default function ProjectDetailPage() {
                 <div className="flex items-center gap-3">
                   <div className="text-right">
                     <p className="text-sm font-bold text-gray-700">{formatCurrency(project.invoice.total)}</p>
-                    {project.invoice.balance_due > 0 && <p className="text-xs text-orange-500">Balance: {formatCurrency(project.invoice.balance_due)}</p>}
+                    {project.invoice.balance_due > 0 && <p className="text-xs text-blue-500">Balance: {formatCurrency(project.invoice.balance_due)}</p>}
                   </div>
                   <button onClick={() => router.push(`/invoices/${project.invoice_id}`)}
-                    className="text-xs text-orange-600 hover:text-orange-800 font-semibold">View →</button>
+                    className="text-xs text-blue-600 hover:text-blue-800 font-semibold">View →</button>
                 </div>
               </div>
             )}
@@ -176,7 +176,7 @@ export default function ProjectDetailPage() {
             <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Notes</p>
             {editing
               ? <div className="flex gap-2">
-                  <button onClick={saveNotes} disabled={saving} className="flex items-center gap-1 text-xs bg-orange-500 text-white px-3 py-1.5 rounded-lg font-semibold">
+                  <button onClick={saveNotes} disabled={saving} className="flex items-center gap-1 text-xs bg-blue-500 text-white px-3 py-1.5 rounded-lg font-semibold">
                     <Save size={11}/>{saving ? 'Saving...' : 'Save'}
                   </button>
                   <button onClick={() => { setEditing(false); setNotes(project.notes || '') }} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400"><X size={14}/></button>
@@ -186,7 +186,7 @@ export default function ProjectDetailPage() {
           </div>
           {editing
             ? <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={4} autoFocus
-                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 resize-none"/>
+                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none"/>
             : <p className="text-sm text-gray-600 whitespace-pre-line">{project.notes || <span className="text-gray-300 italic">No notes yet. Click edit to add.</span>}</p>
           }
         </div>

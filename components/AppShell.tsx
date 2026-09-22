@@ -2,6 +2,7 @@
 
 import { usePathname } from 'next/navigation'
 import NavSidebar from '@/components/NavSidebar'
+import { MarixaWidget } from '@/components/MarixaWidget'
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -15,6 +16,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     <div className="flex min-h-screen">
       <NavSidebar />
       <main className="flex-1 ml-64">{children}</main>
+      <MarixaWidget />
     </div>
   )
 }

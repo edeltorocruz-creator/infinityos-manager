@@ -44,7 +44,7 @@ export default function NavSidebar() {
   const linkClass = (href: string) =>
     `flex items-center justify-between px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
       isActive(href)
-        ? 'bg-orange-500 text-white'
+        ? 'bg-blue-500 text-white'
         : 'text-gray-300 hover:bg-gray-800 hover:text-white'
     }`
 
@@ -52,7 +52,7 @@ export default function NavSidebar() {
     <aside className="w-64 bg-gray-900 text-white flex flex-col fixed h-full z-40">
       <div className="p-6 border-b border-gray-700">
         <h1 className="font-black text-lg text-white tracking-tight">INFINITY WRAP</h1>
-        <p className="text-orange-400 text-xs font-semibold mt-0.5">Manager OS</p>
+        <p className="text-blue-400 text-xs font-semibold mt-0.5">Manager OS</p>
       </div>
 
       <nav className="flex-1 p-4 space-y-1 overflow-y-auto">

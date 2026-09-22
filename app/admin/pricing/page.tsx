@@ -65,7 +65,7 @@ export default function AdminPricingPage() {
     service_fee: '⚙️ Service Fees',
   }
 
-  const ic = "border border-gray-200 rounded-lg px-2 py-1.5 text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-orange-400 w-full"
+  const ic = "border border-gray-200 rounded-lg px-2 py-1.5 text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 w-full"
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -120,12 +120,12 @@ export default function AdminPricingPage() {
                     </thead>
                     <tbody>
                       {catRules.map((rule: any) => (
-                        <tr key={rule.id} className={`border-b border-gray-50 ${editing === rule.id ? 'bg-orange-50' : 'hover:bg-gray-50'}`}>
+                        <tr key={rule.id} className={`border-b border-gray-50 ${editing === rule.id ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
                           <td className="py-3 px-4">
                             <div>
                               <p className="font-semibold text-gray-900 text-sm">
                                 {rule.label}
-                                {rule.is_default && <span className="text-orange-400 ml-1">*</span>}
+                                {rule.is_default && <span className="text-blue-400 ml-1">*</span>}
                               </p>
                               {rule.notes && <p className="text-xs text-gray-400 mt-0.5 max-w-xs truncate">{rule.notes}</p>}
                             </div>
@@ -181,7 +181,7 @@ export default function AdminPricingPage() {
 
                           <td className="py-3 px-3 text-center">
                             {rule.is_default
-                              ? <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-semibold">Default *</span>
+                              ? <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-semibold">Default *</span>
                               : <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-semibold">✓ Your Price</span>
                             }
                           </td>
@@ -190,7 +190,7 @@ export default function AdminPricingPage() {
                             {editing === rule.id ? (
                               <div className="flex gap-1">
                                 <button onClick={() => saveRule(rule)} disabled={saving === rule.id}
-                                  className="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold">
+                                  className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold">
                                   {saving === rule.id ? '...' : 'Save'}
                                 </button>
                                 <button onClick={() => { setEditing(null); loadRules(); }}
@@ -200,7 +200,7 @@ export default function AdminPricingPage() {
                               </div>
                             ) : (
                               <button onClick={() => setEditing(rule.id)}
-                                className="text-gray-400 hover:text-orange-500 p-1.5 hover:bg-orange-50 rounded-lg transition-colors">
+                                className="text-gray-400 hover:text-blue-500 p-1.5 hover:bg-blue-50 rounded-lg transition-colors">
                                 <Edit2 size={15}/>
                               </button>
                             )}

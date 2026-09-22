@@ -154,7 +154,7 @@ export default function SettingsPage() {
                 value={username}
                 onChange={e => setUsername(e.target.value)}
                 placeholder="infinityos"
-                className="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-900 outline-none focus:border-orange-500 transition-colors"
+                className="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-900 outline-none focus:border-blue-500 transition-colors"
               />
             </div>
             <div>
@@ -163,7 +163,7 @@ export default function SettingsPage() {
                 type="password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                className="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-900 outline-none focus:border-orange-500 transition-colors"
+                className="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-900 outline-none focus:border-blue-500 transition-colors"
               />
             </div>
             <div>
@@ -172,7 +172,7 @@ export default function SettingsPage() {
                 type="password"
                 value={confirmPassword}
                 onChange={e => setConfirmPassword(e.target.value)}
-                className="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-900 outline-none focus:border-orange-500 transition-colors"
+                className="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-900 outline-none focus:border-blue-500 transition-colors"
               />
             </div>
 
@@ -183,7 +183,7 @@ export default function SettingsPage() {
               onClick={saveLogin}
               disabled={saving}
               className="rounded-lg py-3 px-6 text-white text-sm font-bold transition-colors disabled:cursor-not-allowed"
-              style={{ background: saving ? '#9ca3af' : 'linear-gradient(135deg,#ff6b00,#ff9500)' }}
+              style={{ background: saving ? '#9ca3af' : 'linear-gradient(135deg,#3b82f6,#60a5fa)' }}
             >
               {saving ? 'Guardando...' : 'Guardar cambios'}
             </button>
@@ -202,7 +202,7 @@ export default function SettingsPage() {
                     value={tokenNotes}
                     onChange={e => setTokenNotes(e.target.value)}
                     placeholder="Ej: Token para ChatGPT"
-                    className="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-900 outline-none focus:border-orange-500"
+                    className="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-900 outline-none focus:border-blue-500"
                   />
                 </div>
                 <button
@@ -282,7 +282,7 @@ export default function SettingsPage() {
                   }
                   setShowAuditLog(!showAuditLog)
                 }}
-                className="text-sm font-semibold text-orange-600 hover:text-orange-700 mb-4"
+                className="text-sm font-semibold text-blue-600 hover:text-blue-700 mb-4"
               >
                 {showAuditLog ? '▼ Ocultar Audit Log' : '▶ Ver Audit Log'}
               </button>
@@ -298,7 +298,7 @@ export default function SettingsPage() {
                       {auditLog.map(entry => (
                         <div key={entry.id} className="border-b border-gray-300 pb-2">
                           <p className="font-mono text-gray-900">
-                            <span className="font-bold text-orange-600">{entry.action}</span>
+                            <span className="font-bold text-blue-600">{entry.action}</span>
                             {entry.resource_type && <span className="text-gray-600"> • {entry.resource_type}</span>}
                           </p>
                           <p className="text-gray-600 mt-1">{new Date(entry.timestamp).toLocaleString('es-ES')}</p>
