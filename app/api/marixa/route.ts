@@ -63,7 +63,7 @@ When the user asks you to:
 
 Always respond with valid JSON when an action is needed.`
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
 
     const result = await model.generateContent({
       contents: [

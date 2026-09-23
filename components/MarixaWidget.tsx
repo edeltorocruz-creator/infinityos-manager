@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { MessageCircle, X, Send, Mic } from 'lucide-react'
+import { MessageCircle, X, Send, Mic, Volume2, VolumeX } from 'lucide-react'
 
 export function MarixaWidget() {
   const [isOpen, setIsOpen] = useState(false)
@@ -9,8 +9,22 @@ export function MarixaWidget() {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [isListening, setIsListening] = useState(false)
+  const [voiceEnabled, setVoiceEnabled] = useState(true)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const recognitionRef = useRef<any>(null)
+  const voiceEnabledRef = useRef(voiceEnabled)
+  voiceEnabledRef.current = voiceEnabled
+
+  // Speak Marixa's replies out loud (Spanish)
+  const speak = (text: string) => {
+    if (!voiceEnabledRef.current || typeof window === 'undefined' || !window.speechSynthesis) return
+    window.speechSynthesis.cancel()
+    const utterance = new SpeechSynthesisUtterance(text)
+    utterance.lang = 'es-ES'
+    const esVoice = window.speechSynthesis.getVoices().find(v => v.lang.startsWith('es'))
+    if (esVoice) utterance.voice = esVoice
+    window.speechSynthesis.speak(utterance)
+  }
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -22,9 +36,13 @@ export function MarixaWidget() {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
     if (SpeechRecognition) {
       recognitionRef.current = new SpeechRecognition()
-      recognitionRef.current.language = 'es-ES' // Spanish
+      recognitionRef.current.lang = 'es-ES' // Spanish
       recognitionRef.current.continuous = false
       recognitionRef.current.interimResults = false
+
+      recognitionRef.current.onend = () => {
+        setIsListening(false)
+      }
 
       recognitionRef.current.onresult = (event: any) => {
         const transcript = Array.from(event.results)
@@ -62,6 +80,7 @@ export function MarixaWidget() {
       } else {
         const botMessage = data.message || 'Sin respuesta'
         setMessages((prev) => [...prev, { role: 'marixa', content: botMessage }])
+        speak(botMessage)
       }
     } catch (error) {
       setMessages((prev) => [...prev, { role: 'error', content: 'Error al conectar con Marixa' }])
@@ -111,12 +130,24 @@ export function MarixaWidget() {
               <h3 className="font-bold text-lg">Marixa</h3>
               <p className="text-xs opacity-90">Tu asistente inteligente</p>
             </div>
-            <button
-              onClick={() => setIsOpen(false)}
-              className="hover:bg-blue-800 p-1 rounded transition-colors"
-            >
-              <X size={20} />
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => {
+                  if (voiceEnabled) window.speechSynthesis?.cancel()
+                  setVoiceEnabled(!voiceEnabled)
+                }}
+                className="hover:bg-blue-800 p-1 rounded transition-colors"
+                title={voiceEnabled ? 'Silenciar voz' : 'Activar voz'}
+              >
+                {voiceEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}
+              </button>
+              <button
+                onClick={() => setIsOpen(false)}
+                className="hover:bg-blue-800 p-1 rounded transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
           </div>
 
           {/* Messages */}
