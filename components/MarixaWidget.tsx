@@ -5,7 +5,14 @@ import { MessageCircle, X, Send, Mic, Volume2, VolumeX } from 'lucide-react'
 
 export function MarixaWidget() {
   const [isOpen, setIsOpen] = useState(false)
-  const [messages, setMessages] = useState<Array<{ role: string; content: string }>>([])
+  const [messages, setMessages] = useState<Array<{ role: string; content: string }>>(() => {
+    try { return JSON.parse(sessionStorage.getItem('marixa-chat') || '[]') } catch { return [] }
+  })
+
+  // Keep the conversation across widget close/reopen and page navigation
+  useEffect(() => {
+    try { sessionStorage.setItem('marixa-chat', JSON.stringify(messages.slice(-30))) } catch {}
+  }, [messages])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [isListening, setIsListening] = useState(false)

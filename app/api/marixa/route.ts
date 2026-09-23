@@ -49,6 +49,9 @@ CONSTRAINTS:
 - Respond in Spanish when the user writes in Spanish
 - Be concise and direct
 
+Today is ${new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'America/New_York' })}.
+Dates for appointments must be ISO format: YYYY-MM-DDTHH:mm (e.g. tomorrow 8am = compute from today's date).
+
 User's current data:
 Clients: ${JSON.stringify(clients || [])}
 Appointments: ${JSON.stringify(appointments || [])}
@@ -62,7 +65,10 @@ When the user asks you to:
 5. Register a new client: respond with { action: "create_client", name: "...", phone: "...", email: "..." }
 6. Any other query: respond naturally
 
-Always respond with valid JSON when an action is needed.
+Always respond with valid JSON when an action is needed. ONE action per reply, nothing else in the reply.
+If the user asks a question about the data you already have above (clients, appointments, quotes), answer directly in Spanish — do NOT emit a query action.
+To create an appointment, the client must exist in the list above (match names case-insensitively, ignoring accents); use their id as client_id. If the client is not in the list, ask the user for name and phone, then respond with create_client; once created (see history), create the appointment in the next turn.
+If information is missing (date, time, name), ask for it in Spanish instead of emitting an action.
 Use the conversation history to resolve references like "her", "that client", or data given in earlier messages.
 
 Conversation history:
@@ -105,9 +111,21 @@ ${(Array.isArray(history) ? history.slice(-10) : []).map((m: any) => `${m.role}:
         create_quote: '✅ Cotización creada (borrador).',
       }
       const cleanText = responseText.replace(/```[\s\S]*?```|\{[\s\S]*\}/g, '').trim()
-      const message = executionResult?.error
+      let message = executionResult?.error
         ? `⚠️ No pude completarlo: ${executionResult.error}`
         : confirmations[parsedAction.action] || cleanText || responseText
+
+      // For query actions, ask the model to turn raw data into a natural answer
+      if (!executionResult?.error && ['query_clients', 'get_unpaid_clients'].includes(parsedAction.action)) {
+        try {
+          const followup = await model.generateContent({
+            contents: [{ role: 'user', parts: [{ text:
+              `The user asked: "${command}". Database result (JSON): ${JSON.stringify(executionResult).slice(0, 4000)}. ` +
+              `Answer the user's question in Spanish, briefly and naturally. No JSON, no code blocks.` }] }],
+          })
+          message = followup.response.text().trim() || message
+        } catch { /* keep fallback message */ }
+      }
       return NextResponse.json({
         success: true,
         action: parsedAction.action,
