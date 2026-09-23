@@ -70,7 +70,7 @@ export function MarixaWidget() {
       const response = await fetch('/api/marixa', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ command: userMessage }),
+        body: JSON.stringify({ command: userMessage, history: messages.slice(-10) }),
       })
 
       const data = await response.json()

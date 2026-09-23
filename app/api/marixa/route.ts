@@ -5,7 +5,7 @@ import { createClient } from '@supabase/supabase-js'
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
 
 export async function POST(req: NextRequest) {
-  const { command } = await req.json()
+  const { command, history } = await req.json()
 
   if (!command) {
     return NextResponse.json({ error: 'Command is required' }, { status: 400 })
@@ -59,9 +59,14 @@ When the user asks you to:
 2. Query clients: respond with { action: "query_clients", filters: {...} }
 3. Get unpaid clients: respond with { action: "get_unpaid_clients" }
 4. Create a quote: respond with { action: "create_quote", client_id: "...", items: [...], total: ... }
-5. Any other query: respond naturally
+5. Register a new client: respond with { action: "create_client", name: "...", phone: "...", email: "..." }
+6. Any other query: respond naturally
 
-Always respond with valid JSON when an action is needed.`
+Always respond with valid JSON when an action is needed.
+Use the conversation history to resolve references like "her", "that client", or data given in earlier messages.
+
+Conversation history:
+${(Array.isArray(history) ? history.slice(-10) : []).map((m: any) => `${m.role}: ${m.content}`).join('\n')}`
 
     const model = genAI.getGenerativeModel({ model: 'gemini-3.6-flash' })
 
@@ -94,11 +99,20 @@ Always respond with valid JSON when an action is needed.`
     // If action is parsed, execute it
     if (parsedAction) {
       const executionResult = await executeAction(parsedAction, supabase)
+      const confirmations: Record<string, string> = {
+        create_client: `✅ Cliente "${parsedAction.name || ''}" registrado.`,
+        create_appointment: '✅ Cita creada.',
+        create_quote: '✅ Cotización creada (borrador).',
+      }
+      const cleanText = responseText.replace(/```[\s\S]*?```|\{[\s\S]*\}/g, '').trim()
+      const message = executionResult?.error
+        ? `⚠️ No pude completarlo: ${executionResult.error}`
+        : confirmations[parsedAction.action] || cleanText || responseText
       return NextResponse.json({
         success: true,
         action: parsedAction.action,
         result: executionResult,
-        message: responseText,
+        message,
       })
     }
 
@@ -156,6 +170,17 @@ async function executeAction(action: any, supabase: any) {
           status: 'draft',
         },
       ])
+      return { created: data?.[0] || null, error: error?.message || null }
+    }
+
+    case 'create_client': {
+      const { data, error } = await supabase.from('clients').insert([
+        {
+          name: action.name,
+          phone: action.phone || null,
+          email: action.email || null,
+        },
+      ]).select()
       return { created: data?.[0] || null, error: error?.message || null }
     }
 
